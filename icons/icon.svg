@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="COC Timers">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffd76a"/>
+      <stop offset="1" stop-color="#c99212"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="#0b1220"/>
+  <circle cx="256" cy="256" r="168" fill="none" stroke="url(#g)" stroke-width="36"/>
+  <circle cx="256" cy="256" r="18" fill="#ffd76a"/>
+  <path d="M256 128v140l86 52" fill="none" stroke="#ffd76a" stroke-width="28" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

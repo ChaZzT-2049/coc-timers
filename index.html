@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="theme-color" content="#2a1c10" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@600;700;800&display=swap" rel="stylesheet" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="COC Timers" />
+    <title>COC Timers — mejoras de aldea</title>
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="icon" href="./icons/icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="./icons/icon-192.png" />
+    <link rel="stylesheet" href="./css/app.css" />
+  </head>
+  <body>
+    <div class="app">
+      <header class="topbar">
+        <div class="brand">
+          <div class="logo" aria-hidden="true">⏱</div>
+          <div>
+            <h1>COC Timers</h1>
+            <p>Avisos de mejoras · aldea y base</p>
+          </div>
+        </div>
+        <div class="actions">
+          <button class="btn secondary" id="install-btn" type="button" hidden>
+            <svg class="icon" aria-hidden="true"><use href="#i-install"></use></svg>
+            Instalar<span class="wide-only"> app</span>
+          </button>
+          <button class="btn secondary" id="open-settings" type="button">
+            <svg class="icon" aria-hidden="true"><use href="#i-gear"></use></svg>
+            Ajustes
+          </button>
+          <button class="btn" id="open-import" type="button">
+            <svg class="icon" aria-hidden="true"><use href="#i-import"></use></svg>
+            Importar<span class="wide-only"> JSON</span>
+          </button>
+        </div>
+      </header>
+
+      <section id="empty-state" class="hero">
+        <h2>Sigue los constructores sin estar pegado al juego</h2>
+        <p>
+          La API pública de Clash of Clans no incluye tiempos de mejora.
+          Esta app lee el JSON que exporta el propio juego y calcula cuándo termina cada timer.
+        </p>
+        <ol>
+          <li>En Clash of Clans abre <strong>Ajustes → Más ajustes</strong>.</li>
+          <li>Abajo del todo, <strong>Exportar datos de la aldea en JSON</strong> → Copiar.</li>
+          <li>Vuelve aquí, pega el JSON y activa las notificaciones.</li>
+        </ol>
+        <div class="hero-actions">
+          <button class="btn" id="open-import-2" type="button">
+            <svg class="icon" aria-hidden="true"><use href="#i-clipboard"></use></svg>
+            Pegar JSON<span class="wide-only"> de mi aldea</span>
+          </button>
+          <button class="btn secondary" id="demo-btn" type="button">Ver demo</button>
+        </div>
+        <p class="note">
+          El export es una foto del momento en que pulsas Copiar. Si usas pociones, Pase de Oro, ayudantes o cancelas una mejora, vuelve a exportar para recalcular.
+        </p>
+      </section>
+
+      <section id="dashboard" hidden>
+        <div class="view-tabs" role="tablist" aria-label="Secciones">
+          <button class="chip is-active" data-view="summary" type="button">Resumen</button>
+          <button class="chip" data-view="upgrades" type="button">Mejoras</button>
+        </div>
+
+        <div id="view-summary" class="view-panel">
+          <div class="player">
+            <article class="stat">
+              <span>Jugador</span>
+              <strong id="player-tag">—</strong>
+              <p class="status" id="hall-levels">TH — · BH —</p>
+            </article>
+            <article class="stat">
+              <span>Próxima en terminar</span>
+              <strong id="next-finish">—</strong>
+              <p class="status" id="exported-at">Sin export</p>
+            </article>
+            <article class="stat" id="crew-stat">
+              <span>Constructores</span>
+              <strong id="builder-crew">—</strong>
+              <p class="status" id="builder-crew-status">Aldea y base</p>
+            </article>
+          </div>
+          <p class="idle-banner" id="idle-banner" hidden></p>
+
+          <section class="helpers" id="helpers-panel" hidden>
+            <h2>
+              <svg class="icon" aria-hidden="true"><use href="#i-helper"></use></svg>
+              Choza de los ayudantes
+            </h2>
+            <p class="status" id="helpers-ready"></p>
+            <div class="helpers-grid" id="helpers-list"></div>
+            <div class="helpers-utility" id="helpers-utility" hidden></div>
+          </section>
+
+          <section class="sleep-report" id="sleep-section">
+            <h2>Mientras duermes</h2>
+            <p class="status">Si una mejora acaba en tu sueño, ese constructor (o el lab) se queda parado hasta que te sueles levantar.</p>
+            <div class="sleep-form">
+              <label class="sleep-field">
+                Te acuestas
+                <input id="sleep-bed" type="time" step="60" />
+              </label>
+              <label class="sleep-field">
+                Te levantas
+                <input id="sleep-wake" type="time" step="60" />
+              </label>
+            </div>
+            <div id="sleep-report"></div>
+          </section>
+        </div>
+
+        <div id="view-upgrades" class="view-panel" hidden>
+          <div class="filters" role="tablist">
+            <button class="chip is-active" data-filter="all" type="button">Todas</button>
+            <button class="chip" data-filter="builder" type="button">Constructores</button>
+            <button class="chip" data-filter="lab" type="button">Laboratorio</button>
+            <button class="chip" data-filter="hero" type="button">Héroes<span class="wide-only"> y mascotas</span></button>
+          </div>
+
+          <div class="columns">
+            <section class="col">
+              <h2>Aldea principal <b id="home-badge"></b></h2>
+              <div class="boost-row" id="home-boosts" hidden></div>
+              <div class="list" id="home-list"></div>
+            </section>
+            <section class="col builder-col">
+              <h2 class="builder-title">Base de constructores <b id="builder-badge"></b></h2>
+              <div class="clock-tower" id="clock-tower" hidden></div>
+              <div class="list" id="builder-list"></div>
+            </section>
+          </div>
+        </div>
+      </section>
+
+      <footer class="legal-foot">
+        <p>
+          This material is unofficial and is not endorsed by Supercell. For more information see
+          <a href="https://www.supercell.com/fan-content-policy" rel="noopener noreferrer" target="_blank">Supercell’s Fan Content Policy</a>.
+        </p>
+        <p><a href="./privacidad.html">Privacidad</a></p>
+      </footer>
+    </div>
+
+    <div class="drawer" id="import-drawer" aria-hidden="true">
+      <div class="backdrop" id="import-backdrop"></div>
+      <aside class="sheet" role="dialog" aria-labelledby="import-title">
+        <header>
+          <h2 id="import-title">Importar aldea</h2>
+          <button class="btn close" id="close-import" type="button" aria-label="Cerrar">×</button>
+        </header>
+        <p class="status">Pega el JSON copiado en el juego o súbelo como archivo.</p>
+        <textarea id="json-input" placeholder='{"tag":"#XXXX","timestamp":...,"buildings":[...]}'></textarea>
+        <p class="error" id="import-error" hidden></p>
+        <div class="import-actions">
+          <button class="btn" id="import-btn" type="button">Importar</button>
+          <button class="btn blue" id="paste-btn" type="button">Pegar<span class="wide-only"> del portapapeles</span></button>
+        </div>
+        <div class="file-row">
+          <label class="btn secondary file-btn">Elegir archivo
+            <input id="file-input" type="file" accept="application/json,.json" />
+          </label>
+        </div>
+      </aside>
+    </div>
+
+    <div class="drawer" id="settings-modal" aria-hidden="true">
+      <div class="backdrop" id="settings-backdrop"></div>
+      <aside class="modal-card" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+        <header>
+          <h2 id="settings-title">
+            <svg class="icon" aria-hidden="true"><use href="#i-gear"></use></svg>
+            Ajustes
+          </h2>
+          <button class="btn close" id="close-settings" type="button" aria-label="Cerrar">×</button>
+        </header>
+
+        <h3 class="settings-heading">
+          <svg class="icon" aria-hidden="true"><use href="#i-bell"></use></svg>
+          Notificaciones
+        </h3>
+        <p class="status">Elige cuándo quieres que te avise de las mejoras y de la choza de los ayudantes.</p>
+        <div class="settings">
+          <div class="row">
+            <label for="notify-complete" class="row-label">Avisar al terminar</label>
+            <input id="notify-complete" type="checkbox" checked />
+          </div>
+          <div class="row">
+            <label for="notify-before" class="row-label">Avisar antes</label>
+            <select id="notify-before">
+              <option value="0">No</option>
+              <option value="5">5 minutos</option>
+              <option value="15" selected>15 minutos</option>
+              <option value="30">30 minutos</option>
+              <option value="60">1 hora</option>
+            </select>
+          </div>
+          <div class="row">
+            <label for="notify-sound" class="row-label">Sonido si la app está abierta</label>
+            <input id="notify-sound" type="checkbox" checked />
+          </div>
+          <div class="row">
+            <label for="notify-helpers" class="row-label">Avisar cuando un ayudante o la torre del reloj estén listos</label>
+            <input id="notify-helpers" type="checkbox" checked />
+          </div>
+        </div>
+        <p class="status" id="notify-status"></p>
+        <div class="hero-actions">
+          <button class="btn" id="enable-notify" type="button">
+            <svg class="icon" aria-hidden="true"><use href="#i-bell"></use></svg>
+            Activar avisos
+          </button>
+        </div>
+
+        <h3 class="settings-heading">
+          <svg class="icon" aria-hidden="true"><use href="#i-clock"></use></svg>
+          Formato de hora
+        </h3>
+        <div class="segment" role="group" aria-label="Formato de hora">
+          <button type="button" data-time-format="12">12 horas</button>
+          <button type="button" data-time-format="24" class="is-active">24 horas</button>
+        </div>
+
+        <h3 class="settings-heading">
+          <svg class="icon" aria-hidden="true"><use href="#i-install"></use></svg>
+          Instalar en el móvil
+        </h3>
+        <p class="status">
+          <strong>Android:</strong> Chrome → botón Instalar app, o menú → Instalar aplicación.
+        </p>
+        <p class="status">
+          <strong>iPhone:</strong> Safari → Compartir → Añadir a pantalla de inicio. Abre el icono (no la pestaña de Safari).
+        </p>
+        <p class="note">
+          Los avisos puntuales funcionan con la app abierta o recién usada. Con la app cerrada del todo, el navegador no garantiza el despertador.
+        </p>
+
+        <h3 class="settings-heading">
+          <svg class="icon" aria-hidden="true"><use href="#i-trash"></use></svg>
+          Datos
+        </h3>
+        <div class="hero-actions">
+          <button class="btn secondary" id="clear-btn" type="button">
+            <svg class="icon" aria-hidden="true"><use href="#i-trash"></use></svg>
+            Borrar aldea
+          </button>
+        </div>
+        <p class="status"><a href="./privacidad.html">Privacidad y aviso de fans</a></p>
+      </aside>
+    </div>
+
+    <div class="drawer" id="clipboard-modal" aria-hidden="true">
+      <div class="backdrop" id="clipboard-backdrop"></div>
+      <aside class="modal-card" role="dialog" aria-modal="true" aria-labelledby="clipboard-title">
+        <header>
+          <h2 id="clipboard-title">JSON en el portapapeles</h2>
+          <button class="btn close" id="close-clipboard" type="button" aria-label="Cerrar">×</button>
+        </header>
+        <p class="status" id="clipboard-summary"></p>
+        <p class="note" id="clipboard-replace" hidden>Esto reemplazará la aldea que ya tienes cargada.</p>
+        <div class="hero-actions">
+          <button class="btn green" id="confirm-clipboard" type="button">Importar</button>
+          <button class="btn blue" id="dismiss-clipboard" type="button">Ahora no</button>
+        </div>
+      </aside>
+    </div>
+
+    <div class="toast" id="toast" hidden></div>
+    <svg class="sprite" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <symbol id="i-gear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="3"></circle>
+        <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9c.3.6.9 1 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"></path>
+      </symbol>
+      <symbol id="i-import" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 3v12"></path>
+        <path d="M7 10l5 5 5-5"></path>
+        <path d="M5 21h14"></path>
+      </symbol>
+      <symbol id="i-install" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="5" y="3" width="14" height="18" rx="2"></rect>
+        <path d="M12 8v7"></path>
+        <path d="M9 12l3 3 3-3"></path>
+      </symbol>
+      <symbol id="i-bell" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M6 8a6 6 0 1 1 12 0c0 7 3 7 3 9H3c0-2 3-2 3-9"></path>
+        <path d="M10 21h4"></path>
+      </symbol>
+      <symbol id="i-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="9"></circle>
+        <path d="M12 7v6l4 2"></path>
+      </symbol>
+      <symbol id="i-trash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M4 7h16"></path>
+        <path d="M9 7V5h6v2"></path>
+        <path d="M7 7l1 14h8l1-14"></path>
+      </symbol>
+      <symbol id="i-clipboard" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="6" y="4" width="12" height="16" rx="2"></rect>
+        <path d="M9 4V3h6v1"></path>
+        <path d="M9 10h6"></path>
+        <path d="M9 14h4"></path>
+      </symbol>
+      <symbol id="i-helper" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="10" cy="8" r="3"></circle>
+        <path d="M4 20v-1a5 5 0 0 1 10 0v1"></path>
+        <path d="M18 5v4"></path>
+        <path d="M16 7h4"></path>
+      </symbol>
+    </svg>
+    <script type="module" src="./js/app.js"></script>
+  </body>
+</html>

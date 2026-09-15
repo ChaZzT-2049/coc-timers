@@ -1,0 +1,26 @@
+{
+  "name": "COC Timers — mejoras de aldea",
+  "short_name": "COC Timers",
+  "description": "Temporizadores y avisos de mejoras de Clash of Clans (aldea principal y base de constructores).",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#2a1c10",
+  "theme_color": "#2a1c10",
+  "lang": "es",
+  "icons": [
+    {
+      "src": "./icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
