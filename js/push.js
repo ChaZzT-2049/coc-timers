@@ -92,7 +92,15 @@ export async function getPushToken() {
 
 function remoteJobs(jobs) {
   const now = Date.now();
-  return (jobs || []).filter((job) => Number(job.fireAt) > now).slice(0, 60);
+  const rank = (job) => {
+    const id = String(job.id || "");
+    if (id.startsWith("done:") || id.startsWith("helper-ready:") || id.startsWith("clock-ready:")) return 0;
+    return 1;
+  };
+  return (jobs || [])
+    .filter((job) => Number(job.fireAt) > now)
+    .sort((a, b) => rank(a) - rank(b) || a.fireAt - b.fireAt)
+    .slice(0, 80);
 }
 
 async function postAlerts(body) {

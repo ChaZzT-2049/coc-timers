@@ -1,7 +1,15 @@
 {
-  "latest": 25,
+  "latest": 26,
   "releases": [
     {
+      "id": 26,
+      "date": "2026-09-16",
+      "title": "Aviso al terminar",
+      "notes": [
+        "El aviso de mejora lista ya no se cancela en Firebase si el del ‘antes’ llegó bien.",
+        "Se marca como enviado solo cuando el aviso se muestra de verdad."
+      ]
+    },
       "id": 25,
       "date": "2026-09-16",
       "title": "Avisos con la app cerrada",

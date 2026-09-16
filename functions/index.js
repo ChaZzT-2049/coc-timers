@@ -148,7 +148,7 @@ exports.syncAlerts = onRequest(
     const body = req.body && typeof req.body === "object" ? req.body : {};
     const token = String(body.token || "").trim();
     const deviceId = String(body.deviceId || "").trim();
-    const alerts = Array.isArray(body.alerts) ? body.alerts.slice(0, 60) : [];
+    const alerts = Array.isArray(body.alerts) ? body.alerts.slice(0, 80) : [];
 
     if (!token || token.length < 20 || token.length > 4096) {
       res.status(400).json({ error: "token inválido" });

@@ -33,14 +33,15 @@ export async function requestPermission() {
   return Notification.requestPermission();
 }
 
-export async function showUpgradeNotification({ title, body, tag, vibrate = true }) {
+export async function showUpgradeNotification({ title, body, tag, vibrate = true, requireInteraction = false }) {
   const options = {
     body,
-    tag,
+    tag: String(tag || "coc").replace(/[^a-zA-Z0-9_-]/g, "-").slice(0, 80),
     icon: "./icons/icon-192.png",
     badge: "./icons/icon-192.png",
     vibrate: vibrate ? [180, 80, 180] : undefined,
     renotify: true,
+    requireInteraction,
     data: { url: "./" },
   };
 
@@ -48,7 +49,7 @@ export async function showUpgradeNotification({ title, body, tag, vibrate = true
     const sw = registration || (await navigator.serviceWorker?.ready);
     if (sw?.showNotification) {
       await sw.showNotification(title, options);
-      return;
+      return true;
     }
   } catch {
     /* fall through */
@@ -56,7 +57,9 @@ export async function showUpgradeNotification({ title, body, tag, vibrate = true
 
   if ("Notification" in window && Notification.permission === "granted") {
     new Notification(title, options);
+    return true;
   }
+  return false;
 }
 
 export function clearScheduled() {
@@ -86,6 +89,16 @@ export function collectAlertJobs(upgrades, settings, helpers = [], clockTower = 
       const village = upgrade.village === "builder" ? "Base de constructores" : "Aldea principal";
       const name = `${upgrade.name} ${upgrade.level} → ${upgrade.targetLevel}`;
 
+      jobs.push({
+        id: `done:${upgrade.id}`,
+        fireAt: upgrade.finishAt,
+        title: "Mejora lista",
+        body: `${name} · ${village}`,
+        tag: `done-${upgrade.id}`,
+        markId: `done:${upgrade.id}`,
+        sticky: true,
+      });
+
       if (aheadMs > 0 && upgrade.finishAt - aheadMs > now) {
         jobs.push({
           id: `soon:${upgrade.id}`,
@@ -96,15 +109,6 @@ export function collectAlertJobs(upgrades, settings, helpers = [], clockTower = 
           markId: null,
         });
       }
-
-      jobs.push({
-        id: `done:${upgrade.id}`,
-        fireAt: upgrade.finishAt,
-        title: "Mejora lista",
-        body: `${name} · ${village}`,
-        tag: `done-${upgrade.id}`,
-        markId: `done:${upgrade.id}`,
-      });
     }
   }
 
@@ -159,17 +163,16 @@ export function scheduleUpgradeAlerts(upgrades, settings, notified, markNotified
   for (const job of jobs) {
     if (job.markId && notified.has(job.markId)) continue;
 
-    const fire = () => {
-      if (job.markId) {
-        if (notified.has(job.markId)) return;
-        markNotified(job.markId);
-      }
+    const fire = async () => {
+      if (job.markId && notified.has(job.markId)) return;
       if (settings.sound && job.markId) beep();
-      showUpgradeNotification({
+      const shown = await showUpgradeNotification({
         title: job.title,
         body: job.body,
         tag: job.tag,
+        requireInteraction: Boolean(job.sticky || job.markId),
       });
+      if (shown && job.markId) markNotified(job.markId);
     };
 
     if (job.fireAt <= now + 400) {
@@ -179,5 +182,5 @@ export function scheduleUpgradeAlerts(upgrades, settings, notified, markNotified
     }
   }
 
-  return jobs.filter((job) => !job.markId || !notified.has(job.markId));
+  return jobs.filter((job) => Number(job.fireAt) > now);
 }
