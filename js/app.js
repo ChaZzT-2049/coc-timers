@@ -203,6 +203,26 @@ function formatDuration(ms) {
   return `${s}S`;
 }
 
+function formatExportLag(ms) {
+  const total = Math.max(0, Math.floor(Number(ms) || 0));
+  if (total < 2000) return "al copiar";
+  if (total < 60_000) return `hace ${Math.floor(total / 1000)} s`;
+  if (total < 3600_000) {
+    const m = Math.floor(total / 60_000);
+    const s = Math.floor((total % 60_000) / 1000);
+    return s ? `hace ${m} min ${s} s` : `hace ${m} min`;
+  }
+  const h = Math.floor(total / 3_600_000);
+  const m = Math.floor((total % 3_600_000) / 60_000);
+  return m ? `hace ${h} h ${m} min` : `hace ${h} h`;
+}
+
+function exportLagMsOf(parsed, now = Date.now()) {
+  if (parsed?.exportLagMs != null) return Math.max(0, parsed.exportLagMs);
+  if (parsed?.exportedAt) return Math.max(0, now - parsed.exportedAt);
+  return 0;
+}
+
 function formatDate(ms) {
   return new Intl.DateTimeFormat("es", {
     dateStyle: "medium",
@@ -748,7 +768,7 @@ function renderShell() {
   const bh = snapshot.builderHallLevel != null ? `BH ${snapshot.builderHallLevel}` : "BH —";
   els.tag.textContent = snapshot.tag;
   els.halls.textContent = `${th} · ${bh}`;
-  els.exported.textContent = `Exportado ${formatDate(snapshot.exportedAt)}`;
+  els.exported.textContent = `Foto ${formatExportLag(exportLagMsOf(snapshot))} · ${formatDate(snapshot.exportedAt)}`;
   applyDashView();
   renderLists();
 }
@@ -941,8 +961,9 @@ function openClipboardPrompt(parsed) {
   const th = parsed.townHallLevel != null ? `TH ${parsed.townHallLevel}` : "TH —";
   const bh = parsed.builderHallLevel != null ? `BH ${parsed.builderHallLevel}` : "BH —";
   const n = parsed.upgrades.length;
+  const lag = formatExportLag(exportLagMsOf(parsed));
   els.clipboardSummary.textContent =
-    `Encontré un export de ${parsed.tag} (${th} · ${bh}) con ${n} mejora${n === 1 ? "" : "s"} en curso. ¿Lo importas?`;
+    `Encontré un export de ${parsed.tag} (${th} · ${bh}) con ${n} mejora${n === 1 ? "" : "s"} en curso (foto ${lag}). ¿Lo importas?`;
   els.clipboardReplace.hidden = !snapshot;
   openOverlay(els.clipboardModal);
 }

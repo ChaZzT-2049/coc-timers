@@ -414,6 +414,15 @@ function hallLevel(items, dataId) {
   return Number.isFinite(level) ? level : null;
 }
 
+/** `timestamp` del export: unix en segundos o milisegundos. El `timer` es restante en esa foto. */
+export function exportTimeMs(payload, importedAt = Date.now()) {
+  const raw = Number(payload && payload.timestamp);
+  if (!Number.isFinite(raw) || raw <= 0) return importedAt;
+  const ms = raw < 1e11 ? raw * 1000 : raw;
+  if (!Number.isFinite(ms) || ms <= 0) return importedAt;
+  return Math.min(ms, importedAt);
+}
+
 export function parseVillageExport(payload, importedAt = Date.now()) {
   if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
     throw new Error("El JSON no parece un export de aldea.");
@@ -425,10 +434,8 @@ export function parseVillageExport(payload, importedAt = Date.now()) {
     throw new Error("No encuentro buildings, buildings2 ni tag. ¿Pegaste el JSON completo?");
   }
 
-  const exportUnix = Number(payload.timestamp);
-  const exportedAt = Number.isFinite(exportUnix) && exportUnix > 1_000_000_000
-    ? exportUnix * 1000
-    : importedAt;
+  const exportedAt = exportTimeMs(payload, importedAt);
+  const exportLagMs = Math.max(0, importedAt - exportedAt);
 
   const upgrades = Object.keys(FIELD_VILLAGE).flatMap((field) => collectField(payload, field));
   const helpers = parseHelpers(payload);
@@ -449,6 +456,7 @@ export function parseVillageExport(payload, importedAt = Date.now()) {
     tag: String(payload.tag || payload.village_id || "").trim() || "Sin etiqueta",
     exportedAt,
     importedAt,
+    exportLagMs,
     townHallLevel,
     builderHallLevel,
     helpers,
