@@ -23,7 +23,8 @@ import {
   scheduleUpgradeAlerts,
   setServiceWorker,
 } from "./notify.js";
-import { getPushToken, syncPushAlerts } from "./push.js";
+import { syncPushAlerts, getPushToken } from "./push.js";
+import { loadChangelog, markChangelogSeen, unseenReleases } from "./changelog.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -60,6 +61,8 @@ const els = {
   clipboardModal: $("clipboard-modal"),
   clipboardSummary: $("clipboard-summary"),
   clipboardReplace: $("clipboard-replace"),
+  changelogModal: $("changelog-modal"),
+  changelogBody: $("changelog-body"),
   sleepBed: $("sleep-bed"),
   sleepWake: $("sleep-wake"),
   sleepReport: $("sleep-report"),
@@ -77,6 +80,7 @@ let ticker = null;
 let pendingClipboard = null;
 let clipboardBusy = false;
 const dismissedClipboard = new Set();
+let changelogCache = null;
 
 function isStandaloneDisplay() {
   const modes = [
@@ -932,6 +936,42 @@ function closeSettings() {
   closeOverlay(els.settingsModal);
 }
 
+function renderChangelog(releases) {
+  if (!els.changelogBody) return;
+  if (!releases.length) {
+    els.changelogBody.innerHTML = `<p class="status">No hay notas nuevas.</p>`;
+    return;
+  }
+  els.changelogBody.innerHTML = releases.map((item) => `
+    <article class="changelog-item">
+      <h3>${escapeHtml(item.title)}</h3>
+      <p class="status">${escapeHtml(item.date)}${item.id ? ` · v${item.id}` : ""}</p>
+      <ul>${item.notes.map((note) => `<li>${escapeHtml(note)}</li>`).join("")}</ul>
+    </article>
+  `).join("");
+}
+
+function closeChangelog() {
+  if (changelogCache?.latest) markChangelogSeen(changelogCache.latest);
+  closeOverlay(els.changelogModal);
+}
+
+function openChangelog(releases) {
+  renderChangelog(releases || changelogCache?.releases || []);
+  closeSettings();
+  openOverlay(els.changelogModal);
+}
+
+async function initChangelog() {
+  try {
+    changelogCache = await loadChangelog();
+    const fresh = unseenReleases(changelogCache);
+    if (fresh.length) openChangelog(fresh);
+  } catch {
+    /* sin changelog en red */
+  }
+}
+
 function clipboardKey(parsed) {
   return `${parsed.tag}|${parsed.exportedAt}`;
 }
@@ -946,7 +986,8 @@ function overlayOpen() {
   return (
     els.drawer.classList.contains("is-open") ||
     els.settingsModal.classList.contains("is-open") ||
-    els.clipboardModal.classList.contains("is-open")
+    els.clipboardModal.classList.contains("is-open") ||
+    els.changelogModal.classList.contains("is-open")
   );
 }
 
@@ -1010,11 +1051,29 @@ function bind() {
   $("dismiss-clipboard").addEventListener("click", dismissClipboardPrompt);
   $("close-clipboard").addEventListener("click", dismissClipboardPrompt);
   $("clipboard-backdrop").addEventListener("click", dismissClipboardPrompt);
+  $("open-changelog")?.addEventListener("click", async () => {
+    if (!changelogCache) {
+      try {
+        changelogCache = await loadChangelog();
+      } catch {
+        toast("No pude cargar las novedades");
+        return;
+      }
+    }
+    openChangelog(changelogCache.releases);
+  });
+  $("close-changelog")?.addEventListener("click", closeChangelog);
+  $("ack-changelog")?.addEventListener("click", closeChangelog);
+  $("changelog-backdrop")?.addEventListener("click", closeChangelog);
 
   document.addEventListener("keydown", (event) => {
     if (event.key !== "Escape") return;
     if (els.clipboardModal.classList.contains("is-open")) {
       dismissClipboardPrompt();
+      return;
+    }
+    if (els.changelogModal.classList.contains("is-open")) {
+      closeChangelog();
       return;
     }
     closeDrawer();
@@ -1184,6 +1243,7 @@ bind();
 applySettingsToForm();
 void syncInstallUi();
 window.addEventListener("load", () => void syncInstallUi());
+void initChangelog();
 renderShell();
 if (snapshot) startTicker();
 updateNotifyStatus("Notification" in window ? Notification.permission : "unsupported");

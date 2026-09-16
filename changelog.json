@@ -1,0 +1,40 @@
+{
+  "latest": 24,
+  "releases": [
+    {
+      "id": 24,
+      "date": "2026-09-16",
+      "title": "Novedades al actualizar",
+      "notes": [
+        "La app te muestra qué cambió cuando hay una versión nueva.",
+        "Puedes volver a leerlo en Ajustes → Novedades."
+      ]
+    },
+    {
+      "id": 23,
+      "date": "2026-09-16",
+      "title": "Foto del JSON",
+      "notes": [
+        "Los timers usan el timestamp de la foto, no el momento en que pegas el JSON.",
+        "Si tardas unos segundos (o usas pociones), el desfase se resta solo."
+      ]
+    },
+    {
+      "id": 22,
+      "date": "2026-09-16",
+      "title": "Avisos cortos y pociones",
+      "notes": [
+        "Firebase no reescribe todos los avisos en cada import: solo los que cambian de hora.",
+        "Las mejoras cortas también se programan en la nube, porque el reloj del navegador se duerme en segundo plano."
+      ]
+    },
+    {
+      "id": 21,
+      "date": "2026-09-16",
+      "title": "Avisos con la app cerrada",
+      "notes": [
+        "Chrome en Android puede avisarte vía Firebase si activaste notificaciones e importaste el JSON."
+      ]
+    }
+  ]
+}

@@ -882,7 +882,24 @@ select {
   border-radius: 18px;
   padding: 0 20px 20px;
 }
-.modal-card .hero-actions { margin-top: 16px; }
+.changelog-list { display: grid; gap: 14px; }
+.changelog-item h3 {
+  margin: 0 0 4px;
+  font-family: var(--display);
+  font-size: 1.05rem;
+  font-weight: 400;
+  color: var(--ink);
+}
+.changelog-item .status { margin: 0 0 6px; }
+.changelog-item ul {
+  margin: 0;
+  padding-left: 1.15em;
+}
+.changelog-item li {
+  margin: 4px 0;
+  font-weight: 700;
+  color: var(--ink);
+}
 .modal-card .note { margin-top: 12px; }
 .modal-card .status,
 .sheet .status { color: var(--muted); }
