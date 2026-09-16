@@ -79,6 +79,7 @@ let deferredPrompt = null;
 let ticker = null;
 let pendingClipboard = null;
 let clipboardBusy = false;
+let clipboardNeedsRetry = false;
 const dismissedClipboard = new Set();
 let changelogCache = null;
 
@@ -930,6 +931,7 @@ function openDrawer() {
 
 function closeDrawer() {
   closeOverlay(els.drawer);
+  offerClipboardSoon();
 }
 
 function openSettings() {
@@ -939,6 +941,7 @@ function openSettings() {
 
 function closeSettings() {
   closeOverlay(els.settingsModal);
+  offerClipboardSoon();
 }
 
 function renderChangelog(releases) {
@@ -959,6 +962,7 @@ function renderChangelog(releases) {
 function closeChangelog() {
   if (changelogCache?.latest) markChangelogSeen(changelogCache.latest);
   closeOverlay(els.changelogModal);
+  offerClipboardSoon();
 }
 
 function openChangelog(releases) {
@@ -971,10 +975,14 @@ async function initChangelog() {
   try {
     changelogCache = await loadChangelog();
     const fresh = unseenReleases(changelogCache);
-    if (fresh.length) openChangelog(fresh);
+    if (fresh.length) {
+      openChangelog(fresh);
+      return;
+    }
   } catch {
     /* sin changelog en red */
   }
+  offerClipboardSoon();
 }
 
 function clipboardKey(parsed) {
@@ -1025,6 +1033,20 @@ async function importPendingClipboard() {
   updateNotifyStatus(permission);
 }
 
+function offerClipboardSoon() {
+  if (overlayOpen()) {
+    clipboardNeedsRetry = true;
+    return;
+  }
+  window.setTimeout(() => {
+    if (overlayOpen()) {
+      clipboardNeedsRetry = true;
+      return;
+    }
+    void offerClipboardIfValid();
+  }, 280);
+}
+
 async function offerClipboardIfValid() {
   if (clipboardBusy || overlayOpen() || !navigator.clipboard?.readText) return;
   if (document.visibilityState !== "visible") return;
@@ -1037,8 +1059,11 @@ async function offerClipboardIfValid() {
     if (dismissedClipboard.has(key)) return;
     if (snapshot && clipboardKey(snapshot) === key) return;
     openClipboardPrompt(parsed);
-  } catch {
-    /* sin permiso o portapapeles vacío */
+  } catch (error) {
+    const name = error && error.name;
+    if (name === "NotAllowedError" || name === "SecurityError") {
+      document.addEventListener("pointerdown", () => offerClipboardSoon(), { once: true });
+    }
   } finally {
     clipboardBusy = false;
   }
@@ -1242,13 +1267,13 @@ function bind() {
     if (document.visibilityState === "visible") {
       renderLists();
       syncAlerts();
-      offerClipboardIfValid();
+      offerClipboardSoon();
     } else {
       syncAlerts();
     }
   });
   window.addEventListener("pagehide", () => syncAlerts());
-  window.addEventListener("focus", () => offerClipboardIfValid());
+  window.addEventListener("focus", () => offerClipboardSoon());
 }
 
 async function registerWorker() {
@@ -1272,4 +1297,3 @@ updateNotifyStatus("Notification" in window ? Notification.permission : "unsuppo
 registerWorker().then(() => {
   if (snapshot) syncAlerts();
 });
-offerClipboardIfValid();
