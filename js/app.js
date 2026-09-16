@@ -23,7 +23,7 @@ import {
   scheduleUpgradeAlerts,
   setServiceWorker,
 } from "./notify.js";
-import { syncPushAlerts } from "./push.js";
+import { getPushToken, syncPushAlerts } from "./push.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -877,7 +877,7 @@ function demoPayload() {
 
 function updateNotifyStatus(permission) {
   const labels = {
-    granted: "Notificaciones activas. Los avisos puntuales requieren la app abierta o reciente.",
+    granted: "Notificaciones activas. Con la app cerrada, Chrome en Android avisa por Firebase si ya importaste el JSON.",
     denied: "Notificaciones bloqueadas en el navegador",
     default: "Activa las notificaciones para avisarte",
     unsupported: "Este navegador no admite notificaciones",
@@ -1044,6 +1044,7 @@ function bind() {
     const permission = await requestPermission();
     updateNotifyStatus(permission);
     if (permission === "granted") {
+      void getPushToken();
       syncAlerts();
       toast("Avisos listos");
     }
@@ -1140,8 +1141,11 @@ function bind() {
       renderLists();
       syncAlerts();
       offerClipboardIfValid();
+    } else {
+      syncAlerts();
     }
   });
+  window.addEventListener("pagehide", () => syncAlerts());
   window.addEventListener("focus", () => offerClipboardIfValid());
 }
 

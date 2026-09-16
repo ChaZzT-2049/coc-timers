@@ -12,9 +12,20 @@ const ICON = "https://chazzt-2049.github.io/coc-timers/icons/icon-192.png";
 const LINK = "https://chazzt-2049.github.io/coc-timers/";
 const MAX_SCHEDULE_MS = 29 * 24 * 60 * 60 * 1000;
 
-function taskId(deviceId, alertId) {
-  const digest = crypto.createHash("sha256").update(`${deviceId}:${alertId}`).digest("hex").slice(0, 40);
-  return `a${digest}`;
+function digest(value) {
+  return crypto.createHash("sha256").update(value).digest("hex").slice(0, 40);
+}
+
+function taskId(deviceId, alertId, fireAtSec, scheduleSec) {
+  return `a${digest(`${deviceId}:${alertId}:${fireAtSec}:${scheduleSec}`)}`;
+}
+
+function legacyTaskId(deviceId, alertId) {
+  return `a${digest(`${deviceId}:${alertId}`)}`;
+}
+
+function toSec(ms) {
+  return Math.floor(Number(ms) / 1000);
 }
 
 function queue() {
@@ -22,6 +33,7 @@ function queue() {
 }
 
 async function deleteTask(id) {
+  if (!id) return;
   try {
     await queue().delete(id);
   } catch {
@@ -32,14 +44,19 @@ async function deleteTask(id) {
 async function enqueueAlert(payload, whenMs) {
   const now = Date.now();
   const fireAt = Number(whenMs);
-  if (!Number.isFinite(fireAt) || fireAt <= now + 1000) return;
+  if (!Number.isFinite(fireAt) || fireAt <= now) return null;
   const scheduleTime = new Date(Math.min(fireAt, now + MAX_SCHEDULE_MS));
-  const id = taskId(payload.deviceId, payload.alertId);
-  await deleteTask(id);
+  const id = taskId(
+    payload.deviceId,
+    payload.alertId,
+    toSec(fireAt),
+    toSec(scheduleTime.getTime())
+  );
   await queue().enqueue(
     { ...payload, fireAt },
     { id, scheduleTime }
   );
+  return id;
 }
 
 exports.sendPush = onTaskDispatched(
@@ -85,6 +102,25 @@ exports.sendPush = onTaskDispatched(
   }
 );
 
+function parsePrevious(body, deviceId) {
+  if (Array.isArray(body.previous) && body.previous.length) {
+    return body.previous.slice(0, 80).map((item) => {
+      if (!item || typeof item !== "object") return null;
+      return {
+        id: String(item.id || "").slice(0, 180),
+        fireAt: Number(item.fireAt) || 0,
+        taskId: String(item.taskId || ""),
+      };
+    }).filter((item) => item?.id);
+  }
+  const ids = Array.isArray(body.previousIds) ? body.previousIds.map(String).slice(0, 80) : [];
+  return ids.map((id) => ({
+    id,
+    fireAt: 0,
+    taskId: legacyTaskId(deviceId, id),
+  }));
+}
+
 exports.syncAlerts = onRequest(
   {
     region: REGION,
@@ -106,7 +142,6 @@ exports.syncAlerts = onRequest(
     const token = String(body.token || "").trim();
     const deviceId = String(body.deviceId || "").trim();
     const alerts = Array.isArray(body.alerts) ? body.alerts.slice(0, 60) : [];
-    const previousIds = Array.isArray(body.previousIds) ? body.previousIds.map(String).slice(0, 80) : [];
 
     if (!token || token.length < 20 || token.length > 4096) {
       res.status(400).json({ error: "token inválido" });
@@ -117,16 +152,15 @@ exports.syncAlerts = onRequest(
       return;
     }
 
-    const nextIds = new Set();
-    const jobs = [];
+    const previous = parsePrevious(body, deviceId);
+    const nextJobs = new Map();
     for (const item of alerts) {
       if (!item || typeof item !== "object") continue;
       const id = String(item.id || "").slice(0, 180);
       const fireAt = Number(item.fireAt);
       if (!id || !Number.isFinite(fireAt)) continue;
       if (fireAt > Date.now() + 400 * 24 * 60 * 60 * 1000) continue;
-      nextIds.add(id);
-      jobs.push({
+      nextJobs.set(id, {
         token,
         deviceId,
         alertId: id,
@@ -137,15 +171,29 @@ exports.syncAlerts = onRequest(
       });
     }
 
-    for (const oldId of previousIds) {
-      if (nextIds.has(oldId)) continue;
-      await deleteTask(taskId(deviceId, oldId));
+    const prevMap = new Map(previous.map((item) => [item.id, item]));
+    const kept = [];
+
+    for (const prev of previous) {
+      if (!prev.taskId || !prev.fireAt) {
+        await deleteTask(legacyTaskId(deviceId, prev.id));
+      }
+      const next = nextJobs.get(prev.id);
+      const sameTime = next && toSec(next.fireAt) === toSec(prev.fireAt);
+      if (sameTime) continue;
+      await deleteTask(prev.taskId);
     }
 
-    for (const job of jobs) {
-      await enqueueAlert(job, job.fireAt);
+    for (const job of nextJobs.values()) {
+      const prev = prevMap.get(job.alertId);
+      if (prev && toSec(prev.fireAt) === toSec(job.fireAt) && prev.taskId) {
+        kept.push({ id: job.alertId, fireAt: job.fireAt, taskId: prev.taskId });
+        continue;
+      }
+      const created = await enqueueAlert(job, job.fireAt);
+      if (created) kept.push({ id: job.alertId, fireAt: job.fireAt, taskId: created });
     }
 
-    res.json({ ok: true, scheduled: jobs.length });
+    res.json({ ok: true, scheduled: kept.length, previous: kept });
   }
 );
