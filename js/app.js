@@ -939,9 +939,9 @@ function openSettings() {
   openOverlay(els.settingsModal);
 }
 
-function closeSettings() {
+function closeSettings({ skipClipboard = false } = {}) {
   closeOverlay(els.settingsModal);
-  offerClipboardSoon();
+  if (!skipClipboard) offerClipboardSoon();
 }
 
 function renderChangelog(releases) {
@@ -967,8 +967,8 @@ function closeChangelog() {
 
 function openChangelog(releases) {
   renderChangelog(releases || changelogCache?.releases || []);
-  closeSettings();
-  openOverlay(els.changelogModal);
+  closeSettings({ skipClipboard: true });
+  window.setTimeout(() => openOverlay(els.changelogModal), 80);
 }
 
 async function initChangelog() {
@@ -1081,7 +1081,9 @@ function bind() {
   $("dismiss-clipboard").addEventListener("click", dismissClipboardPrompt);
   $("close-clipboard").addEventListener("click", dismissClipboardPrompt);
   $("clipboard-backdrop").addEventListener("click", dismissClipboardPrompt);
-  $("open-changelog")?.addEventListener("click", async () => {
+  $("open-changelog")?.addEventListener("click", async (event) => {
+    event.preventDefault();
+    event.stopPropagation();
     if (!changelogCache) {
       try {
         changelogCache = await loadChangelog();
