@@ -76,9 +76,8 @@ function scheduleAt(key, when, fn) {
   scheduled.set(key, handle);
 }
 
-export function scheduleUpgradeAlerts(upgrades, settings, notified, markNotified, helpers = [], clockTower = null) {
-  clearScheduled();
-
+export function collectAlertJobs(upgrades, settings, helpers = [], clockTower = null) {
+  const jobs = [];
   const now = Date.now();
   const aheadMs = Math.max(0, Number(settings.notifyMinutesBefore) || 0) * 60_000;
 
@@ -88,79 +87,97 @@ export function scheduleUpgradeAlerts(upgrades, settings, notified, markNotified
       const name = `${upgrade.name} ${upgrade.level} → ${upgrade.targetLevel}`;
 
       if (aheadMs > 0 && upgrade.finishAt - aheadMs > now) {
-        scheduleAt(`soon:${upgrade.id}`, upgrade.finishAt - aheadMs, () => {
-          showUpgradeNotification({
-            title: `Quedan ${settings.notifyMinutesBefore} min`,
-            body: `${name} · ${village}`,
-            tag: `soon-${upgrade.id}`,
-          });
-        });
-      }
-
-      if (notified.has(`done:${upgrade.id}`)) continue;
-
-      const fire = () => {
-        if (notified.has(`done:${upgrade.id}`)) return;
-        markNotified(`done:${upgrade.id}`);
-        if (settings.sound) beep();
-        showUpgradeNotification({
-          title: "Mejora lista",
+        jobs.push({
+          id: `soon:${upgrade.id}`,
+          fireAt: upgrade.finishAt - aheadMs,
+          title: `Quedan ${settings.notifyMinutesBefore} min`,
           body: `${name} · ${village}`,
-          tag: `done-${upgrade.id}`,
+          tag: `soon-${upgrade.id}`,
+          markId: null,
         });
-      };
-
-      if (upgrade.finishAt <= now + 400) {
-        fire();
-      } else {
-        scheduleAt(`done:${upgrade.id}`, upgrade.finishAt, fire);
       }
+
+      jobs.push({
+        id: `done:${upgrade.id}`,
+        fireAt: upgrade.finishAt,
+        title: "Mejora lista",
+        body: `${name} · ${village}`,
+        tag: `done-${upgrade.id}`,
+        markId: `done:${upgrade.id}`,
+      });
     }
   }
 
-  if (!settings.notifyHelpersReady) return;
+  if (settings.notifyHelpersReady) {
+    const groups = new Map();
+    for (const helper of helpers || []) {
+      if (helper.recurrent) continue;
+      const readyAt = Number(helper.readyAt) || 0;
+      if (readyAt <= now + 400) continue;
+      const key = String(readyAt);
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(helper);
+    }
 
-  const groups = new Map();
-  for (const helper of helpers || []) {
-    if (helper.recurrent) continue;
-    const readyAt = Number(helper.readyAt) || 0;
-    if (readyAt <= now + 400) continue;
-    const key = String(readyAt);
-    if (!groups.has(key)) groups.set(key, []);
-    groups.get(key).push(helper);
-  }
-
-  for (const [when, list] of groups) {
-    const id = `helper-ready:${when}`;
-    if (notified.has(id)) continue;
-    const names = list.map((helper) => helper.name || `ID ${helper.dataId}`);
-    const label = names.length === 1
-      ? names[0]
-      : `${names.slice(0, -1).join(", ")} y ${names[names.length - 1]}`;
-
-    scheduleAt(id, Number(when), () => {
-      if (notified.has(id)) return;
-      markNotified(id);
-      if (settings.sound) beep();
-      showUpgradeNotification({
+    for (const [when, list] of groups) {
+      const id = `helper-ready:${when}`;
+      const names = list.map((helper) => helper.name || `ID ${helper.dataId}`);
+      const label = names.length === 1
+        ? names[0]
+        : `${names.slice(0, -1).join(", ")} y ${names[names.length - 1]}`;
+      jobs.push({
+        id,
+        fireAt: Number(when),
         title: list.length > 1 ? "Ayudantes listos" : "Ayudante listo",
         body: `${label} · ya puedes asignarlo${list.length > 1 ? "s" : ""}`,
         tag: id,
+        markId: id,
       });
-    });
+    }
+
+    if (clockTower?.readyAt && !clockTower.active && clockTower.readyAt > now + 400) {
+      const clockId = `clock-ready:${clockTower.readyAt}`;
+      jobs.push({
+        id: clockId,
+        fireAt: clockTower.readyAt,
+        title: "Torre del reloj lista",
+        body: "Ya puedes acelerar la base de constructores ×10",
+        tag: clockId,
+        markId: clockId,
+      });
+    }
   }
 
-  if (!clockTower?.readyAt || clockTower.active || clockTower.readyAt <= now + 400) return;
-  const clockId = `clock-ready:${clockTower.readyAt}`;
-  if (notified.has(clockId)) return;
-  scheduleAt(clockId, clockTower.readyAt, () => {
-    if (notified.has(clockId)) return;
-    markNotified(clockId);
-    if (settings.sound) beep();
-    showUpgradeNotification({
-      title: "Torre del reloj lista",
-      body: "Ya puedes acelerar la base de constructores ×10",
-      tag: clockId,
-    });
-  });
+  return jobs;
+}
+
+export function scheduleUpgradeAlerts(upgrades, settings, notified, markNotified, helpers = [], clockTower = null) {
+  clearScheduled();
+  const jobs = collectAlertJobs(upgrades, settings, helpers, clockTower);
+  const now = Date.now();
+
+  for (const job of jobs) {
+    if (job.markId && notified.has(job.markId)) continue;
+
+    const fire = () => {
+      if (job.markId) {
+        if (notified.has(job.markId)) return;
+        markNotified(job.markId);
+      }
+      if (settings.sound && job.markId) beep();
+      showUpgradeNotification({
+        title: job.title,
+        body: job.body,
+        tag: job.tag,
+      });
+    };
+
+    if (job.fireAt <= now + 400) {
+      fire();
+    } else {
+      scheduleAt(job.id, job.fireAt, fire);
+    }
+  }
+
+  return jobs.filter((job) => !job.markId || !notified.has(job.markId));
 }

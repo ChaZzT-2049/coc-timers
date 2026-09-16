@@ -1,4 +1,4 @@
-const CACHE = "coc-timers-v20";
+const CACHE = "coc-timers-v21";
 const ASSETS = [
   "./",
   "./index.html",
@@ -10,11 +10,26 @@ const ASSETS = [
   "./js/ids.js",
   "./js/storage.js",
   "./js/notify.js",
+  "./js/push.js",
+  "./js/firebase-config.js",
   "./images/aldea.jpg",
   "./icons/icon.svg",
   "./icons/icon-192.png",
   "./icons/icon-512.png",
 ];
+
+importScripts("https://www.gstatic.com/firebasejs/11.6.0/firebase-app-compat.js");
+importScripts("https://www.gstatic.com/firebasejs/11.6.0/firebase-messaging-compat.js");
+
+firebase.initializeApp({
+  apiKey: "AIzaSyCwLaj-3QQg9WmZAyXzNAz3JGcYkXiEz-M",
+  authDomain: "coc-timers.firebaseapp.com",
+  projectId: "coc-timers",
+  storageBucket: "coc-timers.firebasestorage.app",
+  messagingSenderId: "708377560257",
+  appId: "1:708377560257:web:9f211ff4a3178394db0040",
+});
+firebase.messaging();
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -36,6 +51,8 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
+  const url = new URL(event.request.url);
+  if (url.origin !== self.location.origin) return;
   event.respondWith(
     fetch(event.request)
       .then((response) => {

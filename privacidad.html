@@ -17,12 +17,13 @@
         <p><a class="btn secondary" href="./">← Volver</a></p>
         <h2>Privacidad</h2>
         <p>
-          COC Timers funciona en tu navegador. No hay cuenta, no hay servidor de aldeas y no se envía el JSON a ningún sitio.
+          COC Timers guarda el JSON de la aldea en este dispositivo. Si activas avisos, se programa en Firebase solo
+          la hora y el texto del aviso (no el export completo) para poder notificarte con la app cerrada.
         </p>
         <ul>
           <li>El export de la aldea y los ajustes se guardan en <strong>este dispositivo</strong> (<code>localStorage</code>).</li>
-          <li>Las notificaciones las pide el propio navegador; si las activas, el aviso se muestra aquí, no en un servicio nuestro.</li>
-          <li>No usamos cookies de seguimiento ni analítica de terceros.</li>
+          <li>El token de notificaciones y los avisos programados se envían a <strong>Firebase Cloud Messaging</strong> (Google).</li>
+          <li>No usamos cookies de seguimiento. Firebase puede registrar el identificador de la app web.</li>
         </ul>
         <p>
           Puedes borrar los datos con <strong>Borrar aldea</strong> en Ajustes, o limpiando el almacenamiento del sitio en el navegador.

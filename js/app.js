@@ -23,6 +23,7 @@ import {
   scheduleUpgradeAlerts,
   setServiceWorker,
 } from "./notify.js";
+import { syncPushAlerts } from "./push.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -768,6 +769,7 @@ function applySettingsToForm() {
 function syncAlerts() {
   if (!snapshot) {
     clearScheduled();
+    void syncPushAlerts([]);
     return;
   }
   const helpers = (snapshot.helpers || []).map((helper) => ({
@@ -775,7 +777,7 @@ function syncAlerts() {
     name: resolveName(helper.dataId, "home"),
     readyAt: helperReadyAt(helper),
   }));
-  scheduleUpgradeAlerts(
+  const jobs = scheduleUpgradeAlerts(
     snapshot.upgrades,
     settings,
     notified,
@@ -783,6 +785,7 @@ function syncAlerts() {
     helpers,
     snapshot.clockTower || null
   );
+  void syncPushAlerts(jobs);
 }
 
 function startTicker() {
@@ -1031,6 +1034,7 @@ function bind() {
     snapshot = null;
     notified = loadNotified();
     clearScheduled();
+    void syncPushAlerts([]);
     renderShell();
     closeSettings();
     toast("Aldea borrada de este dispositivo");

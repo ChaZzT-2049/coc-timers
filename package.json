@@ -3,6 +3,7 @@
   "private": true,
   "description": "PWA de timers de mejoras de Clash of Clans",
   "scripts": {
-    "start": "npx --yes serve . -p 5173"
+    "start": "npx --yes serve . -p 5173",
+    "deploy:functions": "npx --yes firebase-tools@14 deploy --only functions --project coc-timers"
   }
 }

@@ -1,6 +1,10 @@
 node_modules
+functions/node_modules
 .DS_Store
 Thumbs.db
 .env
 .env.*
 *.pem
+firebase-debug.log
+firebase-debug.*.log
+.firebase

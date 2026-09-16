@@ -12,7 +12,7 @@ Cuando GitHub Pages esté activo: `https://chazzt-2049.github.io/coc-timers/`
 2. **Android:** menú → Instalar aplicación (o el botón Instalar app).
 3. **iPhone:** Compartir → Añadir a pantalla de inicio, y abre el icono.
 
-Los avisos puntuales funcionan con la app abierta o recién usada. El JSON se queda solo en el dispositivo. [Privacidad](./privacidad.html).
+Con avisos activados, se programan en Firebase para que puedan llegar con la app cerrada (Chrome/Android). El JSON de la aldea se queda en el dispositivo. [Privacidad](./privacidad.html).
 
 ## Por qué se pega un JSON
 
