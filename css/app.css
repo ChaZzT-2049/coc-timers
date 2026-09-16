@@ -699,6 +699,53 @@ button, .file-btn {
   color: var(--ink);
 }
 .modal-card header + .settings-heading { margin-top: 14px; }
+#names-search {
+  width: 100%;
+  margin: 8px 0 10px;
+  background: #f7f3e8;
+  color: var(--ink);
+  border: 3px solid var(--gold-edge);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font: 800 0.95rem/1.3 var(--font);
+}
+.names-catalog {
+  max-height: 42vh;
+  overflow: auto;
+  margin: 0 0 8px;
+  padding: 4px;
+  background: linear-gradient(180deg, #ece8dc, #d8d4c8);
+  border: 2px solid #b8b09c;
+  border-radius: 12px;
+}
+.names-catalog h4 {
+  margin: 10px 8px 4px;
+  font-family: var(--display);
+  font-size: 0.95rem;
+  font-weight: 400;
+  color: var(--ink);
+}
+.names-catalog ul {
+  list-style: none;
+  margin: 0;
+  padding: 0 6px 8px;
+}
+.names-catalog li {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 8px;
+  border-bottom: 1px solid rgba(80, 64, 40, 0.12);
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+.names-catalog li span {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.names-catalog .empty-list { margin: 8px; }
 .modal-card header h2 { display: flex; align-items: center; gap: 8px; }
 .row {
   display: flex;

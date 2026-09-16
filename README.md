@@ -6,7 +6,7 @@ This material is unofficial and is not endorsed by Supercell. For more informati
 
 ## Usar en el móvil
 
-Cuando GitHub Pages esté activo: `https://<usuario>.github.io/coc-timers/`
+Cuando GitHub Pages esté activo: `https://chazzt-2049.github.io/coc-timers/`
 
 1. Abre esa URL en Chrome (Android) o Safari (iPhone).
 2. **Android:** menú → Instalar aplicación (o el botón Instalar app).

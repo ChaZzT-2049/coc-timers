@@ -229,19 +229,29 @@
           <button type="button" data-time-format="24" class="is-active">24 horas</button>
         </div>
 
-        <h3 class="settings-heading">
-          <svg class="icon" aria-hidden="true"><use href="#i-install"></use></svg>
-          Instalar en el móvil
-        </h3>
-        <p class="status">
-          <strong>Android:</strong> Chrome → botón Instalar app, o menú → Instalar aplicación.
-        </p>
-        <p class="status">
-          <strong>iPhone:</strong> Safari → Compartir → Añadir a pantalla de inicio. Abre el icono (no la pestaña de Safari).
-        </p>
+        <div id="install-guide">
+          <h3 class="settings-heading">
+            <svg class="icon" aria-hidden="true"><use href="#i-install"></use></svg>
+            Instalar en el móvil
+          </h3>
+          <p class="status">
+            <strong>Android:</strong> Chrome → botón Instalar app, o menú → Instalar aplicación.
+          </p>
+          <p class="status">
+            <strong>iPhone:</strong> Safari → Compartir → Añadir a pantalla de inicio. Abre el icono (no la pestaña de Safari).
+          </p>
+        </div>
         <p class="note">
           Los avisos puntuales funcionan con la app abierta o recién usada. Con la app cerrada del todo, el navegador no garantiza el despertador.
         </p>
+
+        <h3 class="settings-heading">Nombres de mejoras</h3>
+        <p class="status">
+          Así se ven en la app. Si algo sale como <code>ID 1000…</code>, falta el nombre.
+        </p>
+        <input id="names-search" type="search" placeholder="Buscar nombre o ID" autocomplete="off" />
+        <p class="status" id="names-unknown" hidden></p>
+        <div id="names-catalog" class="names-catalog"></div>
 
         <h3 class="settings-heading">
           <svg class="icon" aria-hidden="true"><use href="#i-trash"></use></svg>

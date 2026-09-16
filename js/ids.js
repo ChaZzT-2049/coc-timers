@@ -149,7 +149,7 @@ export const UNIT_NAMES = {
   26000005: "Hielo",
   26000009: "Veneno",
   26000010: "Terremoto",
-  26000011: "Prisa",
+  26000011: "Aceleración",
   26000016: "Clonación",
   26000017: "Esqueletos",
   26000028: "Murciélagos",
@@ -160,9 +160,9 @@ export const UNIT_NAMES = {
   26000109: "Bloque de hielo",
   28000000: "Rey bárbaro",
   28000001: "Reina arquera",
-  28000002: "Gran celador",
+  28000002: "Gran Centinela",
   28000003: "Máquina bélica",
-  28000004: "Campeona real",
+  28000004: "Luchadora real",
   28000005: "Helicóptero de combate",
   28000006: "Príncipe de esbirros",
   28000007: "Duque dragón",
@@ -231,6 +231,26 @@ export function resolveName(dataId, village) {
   if (village === "builder" && BUILDER_NAMES[id]) return BUILDER_NAMES[id];
   if (village === "home" && HOME_NAMES[id]) return HOME_NAMES[id];
   return HOME_NAMES[id] || BUILDER_NAMES[id] || UNIT_NAMES[id] || `ID ${id}`;
+}
+
+export function isKnownId(dataId) {
+  const id = Number(dataId);
+  return Boolean(HOME_NAMES[id] || BUILDER_NAMES[id] || UNIT_NAMES[id]);
+}
+
+function catalogRows(map) {
+  return Object.entries(map)
+    .map(([id, name]) => ({ id: Number(id), name }))
+    .sort((a, b) => a.id - b.id);
+}
+
+/** Listas editables en js/ids.js: edificios, base y tropas/hechizos/héroes. */
+export function nameCatalog() {
+  return [
+    { id: "home", title: "Aldea principal", rows: catalogRows(HOME_NAMES) },
+    { id: "builder", title: "Base de constructores", rows: catalogRows(BUILDER_NAMES) },
+    { id: "units", title: "Tropas, hechizos, héroes y mascotas", rows: catalogRows(UNIT_NAMES) },
+  ];
 }
 
 export function helperIdForKind(kind, village = "home") {

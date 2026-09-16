@@ -2,7 +2,9 @@ import {
   HELPER_LAB,
   KIND_LABELS,
   clockTowerBoostMinutes,
+  isKnownId,
   isUtilityHelper,
+  nameCatalog,
   resolveName,
 } from "./ids.js";
 import { busyBuilders, crewVillage, isComplete, occupiesBuilder, parseVillageText, remainingMs } from "./parser.js";
@@ -48,6 +50,10 @@ const els = {
   notifySound: $("notify-sound"),
   notifyHelpers: $("notify-helpers"),
   installBtn: $("install-btn"),
+  installGuide: $("install-guide"),
+  namesSearch: $("names-search"),
+  namesUnknown: $("names-unknown"),
+  namesCatalog: $("names-catalog"),
   drawer: $("import-drawer"),
   settingsModal: $("settings-modal"),
   clipboardModal: $("clipboard-modal"),
@@ -70,6 +76,75 @@ let ticker = null;
 let pendingClipboard = null;
 let clipboardBusy = false;
 const dismissedClipboard = new Set();
+
+function isAppInstalled() {
+  const modes = ["standalone", "fullscreen", "minimal-ui", "window-controls-overlay"];
+  if (modes.some((mode) => window.matchMedia(`(display-mode: ${mode})`).matches)) return true;
+  if (window.navigator.standalone === true) return true;
+  return false;
+}
+
+function syncInstallUi() {
+  const installed = isAppInstalled();
+  if (els.installBtn) els.installBtn.hidden = installed || !deferredPrompt;
+  if (els.installGuide) els.installGuide.hidden = installed;
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
+}
+
+function unknownIdsFromSnapshot() {
+  if (!snapshot) return [];
+  const ids = new Set();
+  for (const upgrade of snapshot.upgrades || []) {
+    if (!isKnownId(upgrade.dataId)) ids.add(Number(upgrade.dataId));
+  }
+  for (const helper of snapshot.helpers || []) {
+    if (!isKnownId(helper.dataId)) ids.add(Number(helper.dataId));
+  }
+  return [...ids].sort((a, b) => a - b);
+}
+
+function renderNamesCatalog() {
+  if (!els.namesCatalog) return;
+  const query = String(els.namesSearch?.value || "").trim().toLowerCase();
+  const unknown = unknownIdsFromSnapshot();
+  if (els.namesUnknown) {
+    if (unknown.length) {
+      els.namesUnknown.hidden = false;
+      els.namesUnknown.textContent =
+        `En tu export hay IDs sin nombre: ${unknown.join(", ")}. Añádelos en js/ids.js.`;
+    } else {
+      els.namesUnknown.hidden = true;
+      els.namesUnknown.textContent = "";
+    }
+  }
+
+  const groups = nameCatalog().map((group) => {
+    const rows = group.rows.filter((row) => {
+      if (!query) return true;
+      return row.name.toLowerCase().includes(query) || String(row.id).includes(query);
+    });
+    return { ...group, rows };
+  }).filter((group) => group.rows.length);
+
+  if (!groups.length) {
+    els.namesCatalog.innerHTML = `<p class="empty-list">Nada coincide con esa búsqueda.</p>`;
+    return;
+  }
+
+  els.namesCatalog.innerHTML = groups.map((group) => `
+    <h4>${escapeHtml(group.title)} · ${group.rows.length}</h4>
+    <ul>
+      ${group.rows.map((row) => `<li>${escapeHtml(row.name)}<span>${row.id}</span></li>`).join("")}
+    </ul>
+  `).join("");
+}
 
 function toast(message) {
   els.toast.textContent = message;
@@ -792,6 +867,7 @@ function closeDrawer() {
 }
 
 function openSettings() {
+  renderNamesCatalog();
   openOverlay(els.settingsModal);
 }
 
@@ -991,17 +1067,25 @@ function bind() {
 
   window.addEventListener("beforeinstallprompt", (event) => {
     event.preventDefault();
+    if (isAppInstalled()) return;
     deferredPrompt = event;
-    els.installBtn.hidden = false;
+    syncInstallUi();
   });
+
+  window.addEventListener("appinstalled", () => {
+    deferredPrompt = null;
+    syncInstallUi();
+  });
+  window.matchMedia("(display-mode: standalone)").addEventListener("change", syncInstallUi);
 
   els.installBtn.addEventListener("click", async () => {
     if (!deferredPrompt) return;
     deferredPrompt.prompt();
     await deferredPrompt.userChoice;
     deferredPrompt = null;
-    els.installBtn.hidden = true;
+    syncInstallUi();
   });
+  els.namesSearch?.addEventListener("input", renderNamesCatalog);
 
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "visible") {
@@ -1025,6 +1109,7 @@ async function registerWorker() {
 
 bind();
 applySettingsToForm();
+syncInstallUi();
 renderShell();
 if (snapshot) startTicker();
 updateNotifyStatus("Notification" in window ? Notification.permission : "unsupported");
