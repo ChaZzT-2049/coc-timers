@@ -57,14 +57,14 @@ const els = {
   namesUnknown: $("names-unknown"),
   namesCatalog: $("names-catalog"),
   drawer: $("import-drawer"),
-  settingsModal: $("settings-modal"),
+  sleepModal: $("sleep-modal"),
   clipboardModal: $("clipboard-modal"),
   clipboardSummary: $("clipboard-summary"),
   clipboardReplace: $("clipboard-replace"),
-  changelogModal: $("changelog-modal"),
   changelogBody: $("changelog-body"),
   sleepBed: $("sleep-bed"),
   sleepWake: $("sleep-wake"),
+  sleepHours: $("sleep-hours"),
   sleepReport: $("sleep-report"),
   viewSummary: $("view-summary"),
   viewUpgrades: $("view-upgrades"),
@@ -251,6 +251,28 @@ function formatWhen(ms) {
   return formatDate(ms);
 }
 
+function formatClockValue(value) {
+  const mins = parseClock(value);
+  if (mins == null) return "";
+  const when = new Date();
+  when.setHours(Math.floor(mins / 60), mins % 60, 0, 0);
+  return new Intl.DateTimeFormat("es", {
+    timeStyle: "short",
+    hour12: settings.timeFormat === "12",
+  }).format(when);
+}
+
+function renderSleepHours() {
+  if (!els.sleepHours) return;
+  const sched = sleepSchedule();
+  if (!sched) {
+    els.sleepHours.textContent = "Aún no tienes un horario. Ábrelo con Horario de sueño.";
+    return;
+  }
+  els.sleepHours.textContent =
+    `Te acuestas a las ${formatClockValue(settings.sleepBed)} y te levantas a las ${formatClockValue(settings.sleepWake)}`;
+}
+
 function parseClock(value) {
   const match = String(value || "").match(/^(\d{1,2}):(\d{2})/);
   if (!match) return null;
@@ -334,7 +356,7 @@ function renderSleepReport(now = Date.now()) {
   if (!box) return;
   const sched = sleepSchedule();
   if (!sched) {
-    box.innerHTML = `<p class="empty-list">Pon a qué hora te acuestas y te levantas para ver si alguna mejora cae en el sueño y cuánto se pararían los constructores.</p>`;
+    box.innerHTML = `<p class="empty-list">Pon tu horario de sueño para ver si alguna mejora cae en la noche y cuánto se pararían los constructores.</p>`;
     return;
   }
 
@@ -785,6 +807,7 @@ function applySettingsToForm() {
   if (els.notifyHelpers) els.notifyHelpers.checked = settings.notifyHelpersReady !== false;
   if (els.sleepBed) els.sleepBed.value = settings.sleepBed || "";
   if (els.sleepWake) els.sleepWake.value = settings.sleepWake || "";
+  renderSleepHours();
   if (settings.timeFormat !== "12" && settings.timeFormat !== "24") settings.timeFormat = "24";
   document.querySelectorAll("[data-time-format]").forEach((btn) => {
     btn.classList.toggle("is-active", btn.dataset.timeFormat === settings.timeFormat);
@@ -855,6 +878,7 @@ async function importFromText(text) {
     importSnapshot(next);
     els.json.value = "";
     closeDrawer();
+    goHome();
     const permission = await requestPermission();
     updateNotifyStatus(permission);
   } catch (error) {
@@ -934,13 +958,27 @@ function closeDrawer() {
   offerClipboardSoon();
 }
 
-function openSettings() {
-  renderNamesCatalog();
-  openOverlay(els.settingsModal);
+function currentPage() {
+  const hash = (location.hash || "").replace(/^#\/?/, "").toLowerCase();
+  if (hash === "ajustes") return "settings";
+  if (hash === "novedades") return "changelog";
+  return "home";
 }
 
-function closeSettings({ skipClipboard = false } = {}) {
-  closeOverlay(els.settingsModal);
+function goHome() {
+  if (location.hash && location.hash !== "#") location.hash = "";
+  else void applyPage();
+}
+
+function openSleep() {
+  applySettingsToForm();
+  openOverlay(els.sleepModal);
+}
+
+function closeSleep({ skipClipboard = false } = {}) {
+  closeOverlay(els.sleepModal);
+  renderSleepHours();
+  if (snapshot) renderSleepReport();
   if (!skipClipboard) offerClipboardSoon();
 }
 
@@ -959,30 +997,50 @@ function renderChangelog(releases) {
   `).join("");
 }
 
-function closeChangelog() {
-  if (changelogCache?.latest) markChangelogSeen(changelogCache.latest);
-  closeOverlay(els.changelogModal);
-  offerClipboardSoon();
+async function showChangelogPage() {
+  if (!changelogCache) {
+    try {
+      changelogCache = await loadChangelog();
+    } catch {
+      renderChangelog([]);
+      toast("No pude cargar las novedades");
+      return;
+    }
+  }
+  renderChangelog(changelogCache.releases);
+  if (changelogCache.latest) markChangelogSeen(changelogCache.latest);
 }
 
-function openChangelog(releases) {
-  renderChangelog(releases || changelogCache?.releases || []);
-  closeSettings({ skipClipboard: true });
-  window.setTimeout(() => openOverlay(els.changelogModal), 80);
+async function applyPage() {
+  const page = currentPage();
+  const home = $("page-home");
+  const settingsPage = $("page-settings");
+  const changelogPage = $("page-changelog");
+  if (home) home.hidden = page !== "home";
+  if (settingsPage) settingsPage.hidden = page !== "settings";
+  if (changelogPage) changelogPage.hidden = page !== "changelog";
+  $("open-settings")?.classList.toggle("is-active", page === "settings");
+  if (page === "settings") {
+    applySettingsToForm();
+    renderNamesCatalog();
+    updateNotifyStatus("Notification" in window ? Notification.permission : "unsupported");
+  }
+  if (page === "changelog") await showChangelogPage();
+  if (page === "home") offerClipboardSoon();
 }
 
 async function initChangelog() {
   try {
     changelogCache = await loadChangelog();
     const fresh = unseenReleases(changelogCache);
-    if (fresh.length) {
-      openChangelog(fresh);
+    if (fresh.length && currentPage() === "home") {
+      location.hash = "novedades";
       return;
     }
   } catch {
     /* sin changelog en red */
   }
-  offerClipboardSoon();
+  await applyPage();
 }
 
 function clipboardKey(parsed) {
@@ -998,9 +1056,8 @@ function looksLikeVillageJson(text) {
 function overlayOpen() {
   return (
     els.drawer.classList.contains("is-open") ||
-    els.settingsModal.classList.contains("is-open") ||
-    els.clipboardModal.classList.contains("is-open") ||
-    els.changelogModal.classList.contains("is-open")
+    els.sleepModal.classList.contains("is-open") ||
+    els.clipboardModal.classList.contains("is-open")
   );
 }
 
@@ -1050,6 +1107,10 @@ function offerClipboardSoon() {
 async function offerClipboardIfValid() {
   if (clipboardBusy || overlayOpen() || !navigator.clipboard?.readText) return;
   if (document.visibilityState !== "visible") return;
+  if (currentPage() !== "home") {
+    clipboardNeedsRetry = true;
+    return;
+  }
   clipboardBusy = true;
   try {
     const text = await navigator.clipboard.readText();
@@ -1074,29 +1135,21 @@ function bind() {
   $("open-import-2")?.addEventListener("click", openDrawer);
   $("close-import").addEventListener("click", closeDrawer);
   $("import-backdrop").addEventListener("click", closeDrawer);
-  $("open-settings").addEventListener("click", openSettings);
-  $("close-settings").addEventListener("click", closeSettings);
-  $("settings-backdrop").addEventListener("click", closeSettings);
+  $("open-settings").addEventListener("click", () => {
+    if (currentPage() === "settings") goHome();
+    else location.hash = "ajustes";
+  });
+  $("back-settings")?.addEventListener("click", goHome);
+  $("back-changelog")?.addEventListener("click", goHome);
+  $("open-sleep")?.addEventListener("click", openSleep);
+  $("close-sleep")?.addEventListener("click", closeSleep);
+  $("ack-sleep")?.addEventListener("click", closeSleep);
+  $("sleep-backdrop")?.addEventListener("click", closeSleep);
   $("confirm-clipboard").addEventListener("click", () => importPendingClipboard());
   $("dismiss-clipboard").addEventListener("click", dismissClipboardPrompt);
   $("close-clipboard").addEventListener("click", dismissClipboardPrompt);
   $("clipboard-backdrop").addEventListener("click", dismissClipboardPrompt);
-  $("open-changelog")?.addEventListener("click", async (event) => {
-    event.preventDefault();
-    event.stopPropagation();
-    if (!changelogCache) {
-      try {
-        changelogCache = await loadChangelog();
-      } catch {
-        toast("No pude cargar las novedades");
-        return;
-      }
-    }
-    openChangelog(changelogCache.releases);
-  });
-  $("close-changelog")?.addEventListener("click", closeChangelog);
-  $("ack-changelog")?.addEventListener("click", closeChangelog);
-  $("changelog-backdrop")?.addEventListener("click", closeChangelog);
+  window.addEventListener("hashchange", () => void applyPage());
 
   document.addEventListener("keydown", (event) => {
     if (event.key !== "Escape") return;
@@ -1104,12 +1157,15 @@ function bind() {
       dismissClipboardPrompt();
       return;
     }
-    if (els.changelogModal.classList.contains("is-open")) {
-      closeChangelog();
+    if (els.sleepModal.classList.contains("is-open")) {
+      closeSleep();
       return;
     }
-    closeDrawer();
-    closeSettings();
+    if (els.drawer.classList.contains("is-open")) {
+      closeDrawer();
+      return;
+    }
+    if (currentPage() !== "home") goHome();
   });
 
   $("paste-btn").addEventListener("click", async () => {
@@ -1148,7 +1204,7 @@ function bind() {
     clearScheduled();
     void syncPushAlerts([]);
     renderShell();
-    closeSettings();
+    goHome();
     toast("Aldea borrada de este dispositivo");
   });
 
@@ -1228,6 +1284,7 @@ function bind() {
     settings.sleepBed = els.sleepBed?.value || "";
     settings.sleepWake = els.sleepWake?.value || "";
     saveSettings(settings);
+    renderSleepHours();
     if (snapshot) renderSleepReport();
   };
   els.sleepBed?.addEventListener("change", saveSleep);

@@ -1,6 +1,15 @@
 {
-  "latest": 26,
+  "latest": 27,
   "releases": [
+    {
+      "id": 27,
+      "date": "2026-09-16",
+      "title": "Ajustes y novedades",
+      "notes": [
+        "Ajustes y Novedades ya no salen en un modal: son páginas (atrás del navegador también vale).",
+        "El horario de sueño se edita en el modal que queda libre."
+      ]
+    },
     {
       "id": 26,
       "date": "2026-09-16",
@@ -10,6 +19,7 @@
         "Se marca como enviado solo cuando el aviso se muestra de verdad."
       ]
     },
+    {
       "id": 25,
       "date": "2026-09-16",
       "title": "Avisos con la app cerrada",
@@ -18,6 +28,7 @@
         "El estado de la nube se muestra junto a las notificaciones."
       ]
     },
+    {
       "id": 24,
       "date": "2026-09-16",
       "title": "Novedades al actualizar",

@@ -317,6 +317,32 @@ html.is-installed #install-guide {
     0 6px 0 rgba(24, 16, 8, 0.32);
 }
 
+#page-home[hidden],
+.app-page[hidden] { display: none !important; }
+.app-page {
+  margin-top: 12px;
+  padding: 20px 22px 28px;
+  background: linear-gradient(180deg, #f4f0e4 0%, var(--beige) 100%);
+  border: 4px solid var(--wood);
+  border-radius: var(--radius);
+  box-shadow:
+    inset 0 2px 0 rgba(255,255,255,0.55),
+    0 6px 0 rgba(24, 16, 8, 0.32);
+}
+.page-bar { margin-bottom: 4px; }
+.page-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0 4px;
+  font-family: var(--display);
+  font-size: 1.55rem;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  color: #fff;
+  text-shadow: var(--hud-outline);
+}
+a.btn { text-decoration: none; color: #fff; }
 .hero { padding: 28px; margin-top: 12px; }
 .hero h2 {
   margin: 0 0 8px;

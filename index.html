@@ -42,6 +42,7 @@
         </div>
       </header>
 
+      <section id="page-home">
       <section id="empty-state" class="hero">
         <h2>Sigue los constructores sin estar pegado al juego</h2>
         <p>
@@ -104,15 +105,12 @@
           <section class="sleep-report" id="sleep-section">
             <h2>Mientras duermes</h2>
             <p class="status">Si una mejora acaba en tu sueño, ese constructor (o el lab) se queda parado hasta que te sueles levantar.</p>
-            <div class="sleep-form">
-              <label class="sleep-field">
-                Te acuestas
-                <input id="sleep-bed" type="time" step="60" />
-              </label>
-              <label class="sleep-field">
-                Te levantas
-                <input id="sleep-wake" type="time" step="60" />
-              </label>
+            <p class="status" id="sleep-hours"></p>
+            <div class="hero-actions">
+              <button class="btn secondary" id="open-sleep" type="button">
+                <svg class="icon" aria-hidden="true"><use href="#i-clock"></use></svg>
+                Horario de sueño
+              </button>
             </div>
             <div id="sleep-report"></div>
           </section>
@@ -140,48 +138,16 @@
           </div>
         </div>
       </section>
+      </section>
 
-      <footer class="legal-foot">
-        <p>
-          This material is unofficial and is not endorsed by Supercell. For more information see
-          <a href="https://www.supercell.com/fan-content-policy" rel="noopener noreferrer" target="_blank">Supercell’s Fan Content Policy</a>.
-        </p>
-        <p><a href="./privacidad.html">Privacidad</a></p>
-      </footer>
-    </div>
-
-    <div class="drawer" id="import-drawer" aria-hidden="true">
-      <div class="backdrop" id="import-backdrop"></div>
-      <aside class="sheet" role="dialog" aria-labelledby="import-title">
-        <header>
-          <h2 id="import-title">Importar aldea</h2>
-          <button class="btn close" id="close-import" type="button" aria-label="Cerrar">×</button>
-        </header>
-        <p class="status">Pega el JSON copiado en el juego o súbelo como archivo.</p>
-        <textarea id="json-input" placeholder='{"tag":"#XXXX","timestamp":...,"buildings":[...]}'></textarea>
-        <p class="error" id="import-error" hidden></p>
-        <div class="import-actions">
-          <button class="btn" id="import-btn" type="button">Importar</button>
-          <button class="btn blue" id="paste-btn" type="button">Pegar<span class="wide-only"> del portapapeles</span></button>
+      <section id="page-settings" class="app-page" hidden>
+        <div class="page-bar">
+          <button class="btn secondary" id="back-settings" type="button">← Inicio</button>
         </div>
-        <div class="file-row">
-          <label class="btn secondary file-btn">Elegir archivo
-            <input id="file-input" type="file" accept="application/json,.json" />
-          </label>
-        </div>
-      </aside>
-    </div>
-
-    <div class="drawer" id="settings-modal" aria-hidden="true">
-      <div class="backdrop" id="settings-backdrop"></div>
-      <aside class="modal-card" role="dialog" aria-modal="true" aria-labelledby="settings-title">
-        <header>
-          <h2 id="settings-title">
-            <svg class="icon" aria-hidden="true"><use href="#i-gear"></use></svg>
-            Ajustes
-          </h2>
-          <button class="btn close" id="close-settings" type="button" aria-label="Cerrar">×</button>
-        </header>
+        <h2 class="page-title">
+          <svg class="icon" aria-hidden="true"><use href="#i-gear"></use></svg>
+          Ajustes
+        </h2>
 
         <h3 class="settings-heading">
           <svg class="icon" aria-hidden="true"><use href="#i-bell"></use></svg>
@@ -266,7 +232,72 @@
         </div>
         <p class="status"><a href="./privacidad.html">Privacidad y aviso de fans</a></p>
         <div class="hero-actions">
-          <button class="btn secondary" id="open-changelog" type="button">Novedades</button>
+          <a class="btn secondary" id="open-changelog" href="#novedades">Novedades</a>
+        </div>
+      </section>
+
+      <section id="page-changelog" class="app-page" hidden>
+        <div class="page-bar">
+          <button class="btn secondary" id="back-changelog" type="button">← Inicio</button>
+        </div>
+        <h2 class="page-title">Novedades</h2>
+        <div id="changelog-body" class="changelog-list"></div>
+      </section>
+
+      <footer class="legal-foot">
+        <p>
+          This material is unofficial and is not endorsed by Supercell. For more information see
+          <a href="https://www.supercell.com/fan-content-policy" rel="noopener noreferrer" target="_blank">Supercell’s Fan Content Policy</a>.
+        </p>
+        <p><a href="./privacidad.html">Privacidad</a></p>
+      </footer>
+    </div>
+
+    <div class="drawer" id="import-drawer" aria-hidden="true">
+      <div class="backdrop" id="import-backdrop"></div>
+      <aside class="sheet" role="dialog" aria-labelledby="import-title">
+        <header>
+          <h2 id="import-title">Importar aldea</h2>
+          <button class="btn close" id="close-import" type="button" aria-label="Cerrar">×</button>
+        </header>
+        <p class="status">Pega el JSON copiado en el juego o súbelo como archivo.</p>
+        <textarea id="json-input" placeholder='{"tag":"#XXXX","timestamp":...,"buildings":[...]}'></textarea>
+        <p class="error" id="import-error" hidden></p>
+        <div class="import-actions">
+          <button class="btn" id="import-btn" type="button">Importar</button>
+          <button class="btn blue" id="paste-btn" type="button">Pegar<span class="wide-only"> del portapapeles</span></button>
+        </div>
+        <div class="file-row">
+          <label class="btn secondary file-btn">Elegir archivo
+            <input id="file-input" type="file" accept="application/json,.json" />
+          </label>
+        </div>
+      </aside>
+    </div>
+
+    <div class="drawer" id="sleep-modal" aria-hidden="true">
+      <div class="backdrop" id="sleep-backdrop"></div>
+      <aside class="modal-card" role="dialog" aria-modal="true" aria-labelledby="sleep-title">
+        <header>
+          <h2 id="sleep-title">
+            <svg class="icon" aria-hidden="true"><use href="#i-clock"></use></svg>
+            Horario de sueño
+          </h2>
+          <button class="btn close" id="close-sleep" type="button" aria-label="Cerrar">×</button>
+        </header>
+        <p class="status">Si una mejora acaba entre estas horas, ese constructor (o el lab) se queda parado hasta que te levantas.</p>
+        <div class="sleep-form">
+          <label class="sleep-field">
+            Te acuestas
+            <input id="sleep-bed" type="time" step="60" />
+          </label>
+          <label class="sleep-field">
+            Te levantas
+            <input id="sleep-wake" type="time" step="60" />
+          </label>
+        </div>
+        <div class="hero-actions">
+          <button class="btn" id="ack-sleep" type="button">Listo</button>
         </div>
       </aside>
     </div>
@@ -283,20 +314,6 @@
         <div class="hero-actions">
           <button class="btn green" id="confirm-clipboard" type="button">Importar</button>
           <button class="btn blue" id="dismiss-clipboard" type="button">Ahora no</button>
-        </div>
-      </aside>
-    </div>
-
-    <div class="drawer" id="changelog-modal" aria-hidden="true">
-      <div class="backdrop" id="changelog-backdrop"></div>
-      <aside class="modal-card" role="dialog" aria-modal="true" aria-labelledby="changelog-title">
-        <header>
-          <h2 id="changelog-title">Novedades</h2>
-          <button class="btn close" id="close-changelog" type="button" aria-label="Cerrar">×</button>
-        </header>
-        <div id="changelog-body" class="changelog-list"></div>
-        <div class="hero-actions">
-          <button class="btn" id="ack-changelog" type="button">Entendido</button>
         </div>
       </aside>
     </div>
