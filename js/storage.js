@@ -10,6 +10,7 @@ const DEFAULT_SETTINGS = {
   timeFormat: "24",
   sleepBed: "",
   sleepWake: "",
+  installedPwa: false,
 };
 
 function readJson(key, fallback) {

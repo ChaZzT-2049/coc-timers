@@ -77,15 +77,49 @@ let pendingClipboard = null;
 let clipboardBusy = false;
 const dismissedClipboard = new Set();
 
-function isAppInstalled() {
-  const modes = ["standalone", "fullscreen", "minimal-ui", "window-controls-overlay"];
+function isStandaloneDisplay() {
+  const modes = [
+    "standalone",
+    "fullscreen",
+    "minimal-ui",
+    "window-controls-overlay",
+    "borderless",
+    "tabbed",
+  ];
   if (modes.some((mode) => window.matchMedia(`(display-mode: ${mode})`).matches)) return true;
   if (window.navigator.standalone === true) return true;
+  if (String(document.referrer).startsWith("android-app://")) return true;
   return false;
 }
 
-function syncInstallUi() {
-  const installed = isAppInstalled();
+function rememberInstalled() {
+  if (settings.installedPwa) return;
+  settings.installedPwa = true;
+  saveSettings(settings);
+}
+
+async function isAppInstalled() {
+  if (isStandaloneDisplay()) {
+    rememberInstalled();
+    return true;
+  }
+  if (typeof navigator.getInstalledRelatedApps === "function") {
+    try {
+      const apps = await navigator.getInstalledRelatedApps();
+      if (Array.isArray(apps) && apps.length) {
+        rememberInstalled();
+        return true;
+      }
+    } catch {
+      /* no disponible en este navegador */
+    }
+  }
+  return Boolean(settings.installedPwa);
+}
+
+async function syncInstallUi() {
+  const installed = await isAppInstalled();
+  document.documentElement.classList.toggle("is-installed", installed);
   if (els.installBtn) els.installBtn.hidden = installed || !deferredPrompt;
   if (els.installGuide) els.installGuide.hidden = installed;
 }
@@ -1067,16 +1101,26 @@ function bind() {
 
   window.addEventListener("beforeinstallprompt", (event) => {
     event.preventDefault();
-    if (isAppInstalled()) return;
-    deferredPrompt = event;
-    syncInstallUi();
+    void (async () => {
+      if (await isAppInstalled()) {
+        deferredPrompt = null;
+        await syncInstallUi();
+        return;
+      }
+      deferredPrompt = event;
+      await syncInstallUi();
+    })();
   });
 
   window.addEventListener("appinstalled", () => {
     deferredPrompt = null;
-    syncInstallUi();
+    rememberInstalled();
+    void syncInstallUi();
   });
-  window.matchMedia("(display-mode: standalone)").addEventListener("change", syncInstallUi);
+  for (const mode of ["standalone", "fullscreen", "minimal-ui", "window-controls-overlay"]) {
+    const media = window.matchMedia(`(display-mode: ${mode})`);
+    media.addEventListener?.("change", () => void syncInstallUi());
+  }
 
   els.installBtn.addEventListener("click", async () => {
     if (!deferredPrompt) return;
@@ -1109,7 +1153,8 @@ async function registerWorker() {
 
 bind();
 applySettingsToForm();
-syncInstallUi();
+void syncInstallUi();
+window.addEventListener("load", () => void syncInstallUi());
 renderShell();
 if (snapshot) startTicker();
 updateNotifyStatus("Notification" in window ? Notification.permission : "unsupported");
