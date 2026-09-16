@@ -4,11 +4,11 @@ const { getMessaging } = require("firebase-admin/messaging");
 const { getFunctions } = require("firebase-admin/functions");
 const { onRequest } = require("firebase-functions/v2/https");
 const { onTaskDispatched } = require("firebase-functions/v2/tasks");
+const { logger } = require("firebase-functions");
 
 initializeApp();
 
 const REGION = "us-central1";
-const ICON = "https://chazzt-2049.github.io/coc-timers/icons/icon-192.png";
 const LINK = "https://chazzt-2049.github.io/coc-timers/";
 const MAX_SCHEDULE_MS = 29 * 24 * 60 * 60 * 1000;
 
@@ -29,7 +29,7 @@ function toSec(ms) {
 }
 
 function queue() {
-  return getFunctions().taskQueue("locations/us-central1/functions/sendPush");
+  return getFunctions().taskQueue("sendPush");
 }
 
 async function deleteTask(id) {
@@ -39,6 +39,28 @@ async function deleteTask(id) {
   } catch {
     /* ya no existía */
   }
+}
+
+async function sendFcm(payload) {
+  const title = String(payload.title || "COC Timers").slice(0, 80);
+  const body = String(payload.body || "").slice(0, 180);
+  const tag = String(payload.tag || "coc-timers").slice(0, 120);
+  await getMessaging().send({
+    token: String(payload.token),
+    data: {
+      title,
+      body,
+      tag,
+      url: LINK,
+    },
+    webpush: {
+      headers: {
+        Urgency: "high",
+        TTL: "86400",
+      },
+      fcmOptions: { link: LINK },
+    },
+  });
 }
 
 async function enqueueAlert(payload, whenMs) {
@@ -77,26 +99,11 @@ exports.sendPush = onTaskDispatched(
     }
 
     try {
-      await getMessaging().send({
-        token,
-        notification: {
-          title: String(data.title || "COC Timers").slice(0, 80),
-          body: String(data.body || "").slice(0, 180),
-        },
-        webpush: {
-          fcmOptions: { link: LINK },
-          notification: {
-            icon: ICON,
-            badge: ICON,
-            tag: String(data.tag || "coc-timers"),
-            renotify: true,
-          },
-        },
-        data: { url: "./" },
-      });
+      await sendFcm(data);
     } catch (error) {
       const code = error?.code || "";
       if (String(code).includes("registration-token-not-registered")) return;
+      logger.error("sendFcm failed", error);
       throw error;
     }
   }
@@ -152,6 +159,22 @@ exports.syncAlerts = onRequest(
       return;
     }
 
+    if (body.test) {
+      try {
+        await sendFcm({
+          token,
+          title: "COC Timers",
+          body: "Aviso de prueba. Si ves esto con la app cerrada, Firebase llega bien.",
+          tag: "coc-test",
+        });
+        res.json({ ok: true, test: true });
+      } catch (error) {
+        logger.error("test push failed", error);
+        res.status(502).json({ ok: false, error: String(error.message || error) });
+      }
+      return;
+    }
+
     const previous = parsePrevious(body, deviceId);
     const nextJobs = new Map();
     for (const item of alerts) {
@@ -174,24 +197,30 @@ exports.syncAlerts = onRequest(
     const prevMap = new Map(previous.map((item) => [item.id, item]));
     const kept = [];
 
-    for (const prev of previous) {
-      if (!prev.taskId || !prev.fireAt) {
-        await deleteTask(legacyTaskId(deviceId, prev.id));
+    try {
+      for (const prev of previous) {
+        if (!prev.taskId || !prev.fireAt) {
+          await deleteTask(legacyTaskId(deviceId, prev.id));
+        }
+        const next = nextJobs.get(prev.id);
+        const sameTime = next && toSec(next.fireAt) === toSec(prev.fireAt);
+        if (sameTime) continue;
+        await deleteTask(prev.taskId);
       }
-      const next = nextJobs.get(prev.id);
-      const sameTime = next && toSec(next.fireAt) === toSec(prev.fireAt);
-      if (sameTime) continue;
-      await deleteTask(prev.taskId);
-    }
 
-    for (const job of nextJobs.values()) {
-      const prev = prevMap.get(job.alertId);
-      if (prev && toSec(prev.fireAt) === toSec(job.fireAt) && prev.taskId) {
-        kept.push({ id: job.alertId, fireAt: job.fireAt, taskId: prev.taskId });
-        continue;
+      for (const job of nextJobs.values()) {
+        const prev = prevMap.get(job.alertId);
+        if (prev && toSec(prev.fireAt) === toSec(job.fireAt) && prev.taskId) {
+          kept.push({ id: job.alertId, fireAt: job.fireAt, taskId: prev.taskId });
+          continue;
+        }
+        const created = await enqueueAlert(job, job.fireAt);
+        if (created) kept.push({ id: job.alertId, fireAt: job.fireAt, taskId: created });
       }
-      const created = await enqueueAlert(job, job.fireAt);
-      if (created) kept.push({ id: job.alertId, fireAt: job.fireAt, taskId: created });
+    } catch (error) {
+      logger.error("syncAlerts enqueue failed", error);
+      res.status(502).json({ ok: false, error: String(error.message || error) });
+      return;
     }
 
     res.json({ ok: true, scheduled: kept.length, previous: kept });

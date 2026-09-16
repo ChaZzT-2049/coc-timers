@@ -1,4 +1,4 @@
-const CACHE = "coc-timers-v24";
+const CACHE = "coc-timers-v25";
 const ASSETS = [
   "./",
   "./index.html",
@@ -32,6 +32,34 @@ firebase.initializeApp({
   appId: "1:708377560257:web:9f211ff4a3178394db0040",
 });
 firebase.messaging();
+
+function pushOptions(data) {
+  const d = data || {};
+  const n = d.notification || {};
+  const extra = d.data || {};
+  return {
+    title: n.title || extra.title || "COC Timers",
+    options: {
+      body: n.body || extra.body || "",
+      tag: extra.tag || n.tag || "coc-timers",
+      icon: "./icons/icon-192.png",
+      badge: "./icons/icon-192.png",
+      data: { url: extra.url || "./" },
+      renotify: true,
+    },
+  };
+}
+
+self.addEventListener("push", (event) => {
+  let payload = {};
+  try {
+    payload = event.data ? event.data.json() : {};
+  } catch {
+    payload = {};
+  }
+  const { title, options } = pushOptions(payload);
+  event.waitUntil(self.registration.showNotification(title, options));
+});
 
 self.addEventListener("install", (event) => {
   event.waitUntil(

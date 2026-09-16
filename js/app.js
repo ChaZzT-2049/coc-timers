@@ -23,7 +23,7 @@ import {
   scheduleUpgradeAlerts,
   setServiceWorker,
 } from "./notify.js";
-import { syncPushAlerts, getPushToken } from "./push.js";
+import { getPushToken, loadPushStatus, sendTestPush, syncPushAlerts } from "./push.js";
 import { loadChangelog, markChangelogSeen, unseenReleases } from "./changelog.js";
 
 const $ = (id) => document.getElementById(id);
@@ -791,9 +791,12 @@ function applySettingsToForm() {
 }
 
 function syncAlerts() {
+  const afterPush = () => {
+    if ("Notification" in window) updateNotifyStatus(Notification.permission);
+  };
   if (!snapshot) {
     clearScheduled();
-    void syncPushAlerts([]);
+    void syncPushAlerts([]).then(afterPush);
     return;
   }
   const helpers = (snapshot.helpers || []).map((helper) => ({
@@ -809,7 +812,7 @@ function syncAlerts() {
     helpers,
     snapshot.clockTower || null
   );
-  void syncPushAlerts(jobs);
+  void syncPushAlerts(jobs).then(afterPush);
 }
 
 function startTicker() {
@@ -901,12 +904,14 @@ function demoPayload() {
 
 function updateNotifyStatus(permission) {
   const labels = {
-    granted: "Notificaciones activas. Con la app cerrada, Chrome en Android avisa por Firebase si ya importaste el JSON.",
+    granted: "Notificaciones del navegador activas.",
     denied: "Notificaciones bloqueadas en el navegador",
     default: "Activa las notificaciones para avisarte",
     unsupported: "Este navegador no admite notificaciones",
   };
-  els.notifyStatus.textContent = labels[permission] || labels.default;
+  const push = loadPushStatus();
+  const cloud = push?.text ? ` ${push.text}.` : "";
+  els.notifyStatus.textContent = `${labels[permission] || labels.default}${permission === "granted" ? cloud : ""}`;
 }
 
 function openOverlay(el) {
@@ -1127,6 +1132,23 @@ function bind() {
       void getPushToken();
       syncAlerts();
       toast("Avisos listos");
+    }
+  });
+
+  $("test-push")?.addEventListener("click", async () => {
+    const permission = await requestPermission();
+    updateNotifyStatus(permission);
+    if (permission !== "granted") {
+      toast("Activa avisos primero");
+      return;
+    }
+    try {
+      await sendTestPush();
+      updateNotifyStatus(permission);
+      toast("Aviso de prueba enviado. Cierra la app y espera unos segundos.");
+    } catch (error) {
+      updateNotifyStatus(permission);
+      toast(error.message || "No se pudo enviar la prueba");
     }
   });
 

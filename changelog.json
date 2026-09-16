@@ -1,7 +1,15 @@
 {
-  "latest": 24,
+  "latest": 25,
   "releases": [
     {
+      "id": 25,
+      "date": "2026-09-16",
+      "title": "Avisos con la app cerrada",
+      "notes": [
+        "En Ajustes hay Probar aviso ahora para ver si Firebase llega con la app cerrada.",
+        "El estado de la nube se muestra junto a las notificaciones."
+      ]
+    },
       "id": 24,
       "date": "2026-09-16",
       "title": "Novedades al actualizar",
