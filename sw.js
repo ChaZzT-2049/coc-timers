@@ -1,4 +1,4 @@
-const CACHE = "coc-timers-v29";
+const CACHE = "coc-timers-v32";
 const ASSETS = [
   "./",
   "./index.html",
@@ -13,6 +13,7 @@ const ASSETS = [
   "./js/push.js",
   "./js/firebase-config.js",
   "./js/changelog.js",
+  "./js/visit.js",
   "./changelog.json",
   "./images/aldea.jpg",
   "./icons/icon.svg",

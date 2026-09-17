@@ -21,9 +21,13 @@
           la hora y el texto del aviso (no el export completo) para poder notificarte con la app cerrada.
         </p>
         <ul>
-          <li>El export de la aldea y los ajustes se guardan en <strong>este dispositivo</strong> (<code>localStorage</code>).</li>
-          <li>El token de notificaciones y los avisos programados se envían a <strong>Firebase Cloud Messaging</strong> (Google).</li>
-          <li>No usamos cookies de seguimiento. Firebase puede registrar el identificador de la app web.</li>
+          <li>El export de la aldea y los ajustes se guardan en <strong>este dispositivo</strong>.</li>
+          <li>El token de notificaciones y los avisos programados se envían a Firebase solo si activas avisos.</li>
+          <li>
+            En la <strong>primera visita</strong> se envía un código anónimo (no tu nombre de jugador ni tu aldea)
+            para contar cuántas personas distintas abren la app. No se vuelve a enviar.
+          </li>
+          <li>No usamos cookies de seguimiento.</li>
         </ul>
         <p>
           Puedes borrar los datos con <strong>Borrar aldea</strong> en Ajustes, o limpiando el almacenamiento del sitio en el navegador.

@@ -1,13 +1,21 @@
 {
-  "latest": 27,
+  "latest": 28,
   "releases": [
+    {
+      "id": 28,
+      "date": "2026-09-16",
+      "title": "Botones del móvil",
+      "notes": [
+        "En el teléfono, Ajustes e Importar se ven solo como iconos para que no se parta el texto."
+      ]
+    },
     {
       "id": 27,
       "date": "2026-09-16",
       "title": "Ajustes y novedades",
       "notes": [
-        "Ajustes y Novedades ya no salen en un modal: son páginas (atrás del navegador también vale).",
-        "El horario de sueño se edita en el modal que queda libre."
+        "Ajustes y Novedades ocupan toda la pantalla. Puedes volver con Inicio o con el atrás del teléfono.",
+        "El horario de sueño se cambia en su propia ventana."
       ]
     },
     {
@@ -15,8 +23,7 @@
       "date": "2026-09-16",
       "title": "Aviso al terminar",
       "notes": [
-        "El aviso de mejora lista ya no se cancela en Firebase si el del ‘antes’ llegó bien.",
-        "Se marca como enviado solo cuando el aviso se muestra de verdad."
+        "El aviso de mejora lista llega aunque ya te hayamos avisado un rato antes."
       ]
     },
     {
@@ -24,8 +31,8 @@
       "date": "2026-09-16",
       "title": "Avisos con la app cerrada",
       "notes": [
-        "En Ajustes hay Probar aviso ahora para ver si Firebase llega con la app cerrada.",
-        "El estado de la nube se muestra junto a las notificaciones."
+        "En Ajustes hay un botón para probar si el aviso llega con la app cerrada.",
+        "Junto a las notificaciones verás si los avisos están listos."
       ]
     },
     {
@@ -33,26 +40,26 @@
       "date": "2026-09-16",
       "title": "Novedades al actualizar",
       "notes": [
-        "La app te muestra qué cambió cuando hay una versión nueva.",
-        "Puedes volver a leerlo en Ajustes → Novedades."
+        "Cuando hay una versión nueva, te contamos qué cambió.",
+        "Lo puedes volver a leer en Ajustes → Novedades."
       ]
     },
     {
       "id": 23,
       "date": "2026-09-16",
-      "title": "Foto del JSON",
+      "title": "La foto de tu aldea",
       "notes": [
-        "Los timers usan el timestamp de la foto, no el momento en que pegas el JSON.",
-        "Si tardas unos segundos (o usas pociones), el desfase se resta solo."
+        "Los tiempos se calculan desde el momento en que copiaste los datos en el juego, no desde cuando los pegas aquí.",
+        "Si tardas un poco o usas pociones, eso se tiene en cuenta solo."
       ]
     },
     {
       "id": 22,
       "date": "2026-09-16",
-      "title": "Avisos cortos y pociones",
+      "title": "Mejoras cortas",
       "notes": [
-        "Firebase no reescribe todos los avisos en cada import: solo los que cambian de hora.",
-        "Las mejoras cortas también se programan en la nube, porque el reloj del navegador se duerme en segundo plano."
+        "Las mejoras que duran poco también te avisan, aunque dejes la app.",
+        "Si vuelves a pegar los datos, los avisos se actualizan solos."
       ]
     },
     {
@@ -60,7 +67,7 @@
       "date": "2026-09-16",
       "title": "Avisos con la app cerrada",
       "notes": [
-        "Chrome en Android puede avisarte vía Firebase si activaste notificaciones e importaste el JSON."
+        "Si activas las notificaciones y pegas tu aldea, puedes recibir avisos aunque no tengas la app abierta."
       ]
     }
   ]

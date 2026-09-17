@@ -2,6 +2,7 @@ const crypto = require("crypto");
 const { initializeApp } = require("firebase-admin/app");
 const { getMessaging } = require("firebase-admin/messaging");
 const { getFunctions } = require("firebase-admin/functions");
+const { getFirestore, FieldValue } = require("firebase-admin/firestore");
 const { onRequest } = require("firebase-functions/v2/https");
 const { onTaskDispatched } = require("firebase-functions/v2/tasks");
 const { logger } = require("firebase-functions");
@@ -11,6 +12,11 @@ initializeApp();
 const REGION = "us-central1";
 const LINK = "https://chazzt-2049.github.io/coc-timers/";
 const MAX_SCHEDULE_MS = 29 * 24 * 60 * 60 * 1000;
+const CORS = [
+  "https://chazzt-2049.github.io",
+  "http://localhost:5173",
+  "http://127.0.0.1:5173",
+];
 
 function digest(value) {
   return crypto.createHash("sha256").update(value).digest("hex").slice(0, 40);
@@ -131,11 +137,7 @@ function parsePrevious(body, deviceId) {
 exports.syncAlerts = onRequest(
   {
     region: REGION,
-    cors: [
-      "https://chazzt-2049.github.io",
-      "http://localhost:5173",
-      "http://127.0.0.1:5173",
-    ],
+    cors: CORS,
     invoker: "public",
     maxInstances: 4,
   },
@@ -224,5 +226,45 @@ exports.syncAlerts = onRequest(
     }
 
     res.json({ ok: true, scheduled: kept.length, previous: kept });
+  }
+);
+
+exports.registerVisit = onRequest(
+  {
+    region: REGION,
+    cors: CORS,
+    invoker: "public",
+    maxInstances: 2,
+  },
+  async (req, res) => {
+    if (req.method !== "POST") {
+      res.status(405).json({ error: "POST only" });
+      return;
+    }
+
+    const visitor = String(req.body?.visitor || "").trim();
+    if (!/^[a-zA-Z0-9-]{8,64}$/.test(visitor)) {
+      res.status(400).json({ error: "id inválido" });
+      return;
+    }
+
+    const id = digest(`visit:${visitor}`);
+    const db = getFirestore();
+    const ref = db.collection("visitors").doc(id);
+    const stats = db.doc("stats/app");
+
+    try {
+      const counted = await db.runTransaction(async (tx) => {
+        const snap = await tx.get(ref);
+        if (snap.exists) return false;
+        tx.set(ref, {});
+        tx.set(stats, { unique: FieldValue.increment(1) }, { merge: true });
+        return true;
+      });
+      res.json({ ok: true, counted });
+    } catch (error) {
+      logger.error("registerVisit failed", error);
+      res.status(502).json({ ok: false });
+    }
   }
 );

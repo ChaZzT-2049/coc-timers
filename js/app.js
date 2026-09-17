@@ -25,6 +25,7 @@ import {
 } from "./notify.js";
 import { getPushToken, loadPushStatus, sendTestPush, syncPushAlerts } from "./push.js";
 import { loadChangelog, markChangelogSeen, unseenReleases } from "./changelog.js";
+import { pingUniqueVisit } from "./visit.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -1356,3 +1357,4 @@ updateNotifyStatus("Notification" in window ? Notification.permission : "unsuppo
 registerWorker().then(() => {
   if (snapshot) syncAlerts();
 });
+pingUniqueVisit();

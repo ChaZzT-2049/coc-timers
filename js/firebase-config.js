@@ -12,3 +12,4 @@ export const vapidKey =
   "BGK5TRXEsx1T1Cd88X23AkANnclVBMvAXECi8PdvvXMTfZ5Sbt42A8qkzjS6BOHKxsUKBZf-MgdQikb248Vo89w";
 
 export const syncAlertsUrl = "https://us-central1-coc-timers.cloudfunctions.net/syncAlerts";
+export const registerVisitUrl = "https://us-central1-coc-timers.cloudfunctions.net/registerVisit";

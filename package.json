@@ -4,6 +4,6 @@
   "description": "PWA de timers de mejoras de Clash of Clans",
   "scripts": {
     "start": "npx --yes serve . -p 5173",
-    "deploy:functions": "npx --yes firebase-tools@14 deploy --only functions --project coc-timers"
+    "deploy:functions": "npx --yes firebase-tools@14 deploy --only functions,firestore --project coc-timers"
   }
 }
