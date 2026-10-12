@@ -1,3 +1,5 @@
+import { isNativeApp } from "./native.js";
+
 const MAX_TIMEOUT = 2_147_000_000;
 const scheduled = new Map();
 let registration = null;
@@ -27,6 +29,10 @@ function beep() {
 }
 
 export async function requestPermission() {
+  if (isNativeApp()) {
+    const { requestNativePermission } = await import("./native-alerts.js");
+    return requestNativePermission();
+  }
   if (!("Notification" in window)) return "unsupported";
   if (Notification.permission === "granted") return "granted";
   if (Notification.permission === "denied") return "denied";
@@ -159,6 +165,9 @@ export function scheduleUpgradeAlerts(upgrades, settings, notified, markNotified
   clearScheduled();
   const jobs = collectAlertJobs(upgrades, settings, helpers, clockTower);
   const now = Date.now();
+  if (isNativeApp()) {
+    return jobs.filter((job) => Number(job.fireAt) > now && !(job.markId && notified.has(job.markId)));
+  }
 
   for (const job of jobs) {
     if (job.markId && notified.has(job.markId)) continue;

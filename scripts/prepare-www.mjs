@@ -1,6 +1,7 @@
 import { cpSync, mkdirSync, rmSync, existsSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import * as esbuild from "esbuild";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const www = join(root, "www");
@@ -25,5 +26,15 @@ for (const dir of dirs) {
   const from = join(root, dir);
   if (existsSync(from)) cpSync(from, join(www, dir), { recursive: true });
 }
+
+await esbuild.build({
+  absWorkingDir: root,
+  entryPoints: ["js/native-alerts.js"],
+  bundle: true,
+  format: "esm",
+  platform: "browser",
+  outfile: join(www, "js/native-alerts.js"),
+  logLevel: "silent",
+});
 
 console.log("www listo para Capacitor");

@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="COC Timers">
+  <defs>
+    <linearGradient id="shield" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#8b5a30"/>
+      <stop offset="1" stop-color="#5a3518"/>
+    </linearGradient>
+    <linearGradient id="rim" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffe9a0"/>
+      <stop offset="1" stop-color="#c99212"/>
+    </linearGradient>
+    <linearGradient id="face" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff6dc"/>
+      <stop offset="1" stop-color="#ead6a0"/>
+    </linearGradient>
+  </defs>
+
+  <g transform="translate(256 256) scale(0.78) translate(-256 -256)">
+    <path fill="url(#shield)" d="M256 86
+      C322 86 378 114 378 176
+      V274 C378 348 322 404 256 442
+      C190 404 134 348 134 274
+      V176 C134 114 190 86 256 86 Z"/>
+    <path fill="none" stroke="url(#rim)" stroke-width="18" stroke-linejoin="round" d="M256 86
+      C322 86 378 114 378 176
+      V274 C378 348 322 404 256 442
+      C190 404 134 348 134 274
+      V176 C134 114 190 86 256 86 Z"/>
+    <path stroke="#3d2414" stroke-width="5" stroke-opacity="0.35" d="M214 108 V392"/>
+    <path stroke="#3d2414" stroke-width="5" stroke-opacity="0.35" d="M298 108 V392"/>
+
+    <circle cx="256" cy="236" r="86" fill="url(#face)"/>
+    <circle cx="256" cy="236" r="86" fill="none" stroke="url(#rim)" stroke-width="16"/>
+    <g fill="#c99212">
+      <rect x="250" y="168" width="12" height="20" rx="2"/>
+      <rect x="250" y="284" width="12" height="20" rx="2"/>
+      <rect x="170" y="230" width="20" height="12" rx="2"/>
+      <rect x="322" y="230" width="20" height="12" rx="2"/>
+    </g>
+    <path d="M256 236 V176" stroke="#5a2e0a" stroke-width="14" stroke-linecap="round"/>
+    <path d="M256 236 L300 264" stroke="#5a2e0a" stroke-width="14" stroke-linecap="round"/>
+    <circle cx="256" cy="236" r="10" fill="#5a2e0a"/>
+    <circle cx="256" cy="236" r="4" fill="#ffe9a0"/>
+  </g>
+</svg>

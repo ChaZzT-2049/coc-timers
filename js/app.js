@@ -822,10 +822,15 @@ function applySettingsToForm() {
 
 function syncAlerts() {
   const afterPush = () => {
+    if (isNativeApp()) return;
     if ("Notification" in window) updateNotifyStatus(Notification.permission);
   };
   if (!snapshot) {
     clearScheduled();
+    if (isNativeApp()) {
+      void import("./native-alerts.js").then((mod) => mod.syncNativeAlerts([], markNotified));
+      return;
+    }
     void syncPushAlerts([]).then(afterPush);
     return;
   }
@@ -842,6 +847,16 @@ function syncAlerts() {
     helpers,
     snapshot.clockTower || null
   );
+  if (isNativeApp()) {
+    void import("./native-alerts.js")
+      .then((mod) => mod.syncNativeAlerts(jobs, markNotified))
+      .then(async () => {
+        const { requestNativePermission } = await import("./native-alerts.js");
+        updateNotifyStatus(await requestNativePermission());
+      })
+      .catch(() => updateNotifyStatus("denied"));
+    return;
+  }
   void syncPushAlerts(jobs).then(afterPush);
 }
 
@@ -934,15 +949,24 @@ function demoPayload() {
 }
 
 function updateNotifyStatus(permission) {
-  const labels = {
-    granted: "Notificaciones del navegador activas.",
-    denied: "Notificaciones bloqueadas en el navegador",
-    default: "Activa las notificaciones para avisarte",
-    unsupported: "Este navegador no admite notificaciones",
-  };
-  const push = loadPushStatus();
+  const labels = isNativeApp()
+    ? {
+        granted: "Avisos del teléfono activos. Llegan aunque cierres la app.",
+        denied: "Notificaciones bloqueadas en el teléfono",
+        default: "Activa los avisos del teléfono",
+        unsupported: "Este teléfono no admite avisos",
+      }
+    : {
+        granted: "Notificaciones del navegador activas.",
+        denied: "Notificaciones bloqueadas en el navegador",
+        default: "Activa las notificaciones para avisarte",
+        unsupported: "Este navegador no admite notificaciones",
+      };
+  const push = isNativeApp() ? null : loadPushStatus();
   const cloud = push?.text ? ` ${push.text}.` : "";
   els.notifyStatus.textContent = `${labels[permission] || labels.default}${permission === "granted" ? cloud : ""}`;
+  const webNote = $("web-push-note");
+  if (webNote) webNote.hidden = isNativeApp();
 }
 
 function openOverlay(el) {
@@ -1208,7 +1232,8 @@ function bind() {
     snapshot = null;
     notified = loadNotified();
     clearScheduled();
-    void syncPushAlerts([]);
+    if (isNativeApp()) void import("./native-alerts.js").then((mod) => mod.syncNativeAlerts([], markNotified));
+    else void syncPushAlerts([]);
     renderShell();
     goHome();
     toast("Aldea borrada de este dispositivo");
@@ -1218,7 +1243,7 @@ function bind() {
     const permission = await requestPermission();
     updateNotifyStatus(permission);
     if (permission === "granted") {
-      void getPushToken();
+      if (!isNativeApp()) void getPushToken();
       syncAlerts();
       toast("Avisos listos");
     }
@@ -1232,9 +1257,15 @@ function bind() {
       return;
     }
     try {
-      await sendTestPush();
+      if (isNativeApp()) {
+        const { sendNativeTestAlert } = await import("./native-alerts.js");
+        await sendNativeTestAlert();
+        toast("Aviso de prueba en 8 segundos. Puedes dejar la app.");
+      } else {
+        await sendTestPush();
+        toast("Aviso de prueba enviado. Cierra la app y espera unos segundos.");
+      }
       updateNotifyStatus(permission);
-      toast("Aviso de prueba enviado. Cierra la app y espera unos segundos.");
     } catch (error) {
       updateNotifyStatus(permission);
       toast(error.message || "No se pudo enviar la prueba");
