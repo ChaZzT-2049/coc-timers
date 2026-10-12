@@ -1,5 +1,6 @@
 node_modules
 functions/node_modules
+www
 .DS_Store
 Thumbs.db
 .env
@@ -8,3 +9,11 @@ Thumbs.db
 firebase-debug.log
 firebase-debug.*.log
 .firebase
+android/.gradle
+android/build
+android/app/build
+android/app/release
+android/local.properties
+android/captures
+*.iml
+.idea

@@ -26,6 +26,7 @@ import {
 import { getPushToken, loadPushStatus, sendTestPush, syncPushAlerts } from "./push.js";
 import { loadChangelog, markChangelogSeen, unseenReleases } from "./changelog.js";
 import { pingUniqueVisit } from "./visit.js";
+import { isNativeApp } from "./native.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -106,6 +107,10 @@ function rememberInstalled() {
 }
 
 async function isAppInstalled() {
+  if (isNativeApp()) {
+    rememberInstalled();
+    return true;
+  }
   if (isStandaloneDisplay()) {
     rememberInstalled();
     return true;
@@ -1337,6 +1342,7 @@ function bind() {
 }
 
 async function registerWorker() {
+  if (isNativeApp()) return;
   if (!("serviceWorker" in navigator)) return;
   try {
     const reg = await navigator.serviceWorker.register("./sw.js");

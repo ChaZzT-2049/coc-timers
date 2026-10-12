@@ -1,0 +1,12 @@
+{
+  "appId": "io.github.chazzt2049.coctimers",
+  "appName": "COC Timers",
+  "webDir": "www",
+  "backgroundColor": "#2a1c10",
+  "android": {
+    "webContentsDebuggingEnabled": true
+  },
+  "server": {
+    "androidScheme": "https"
+  }
+}
