@@ -1,4 +1,4 @@
-const CACHE = "coc-timers-v32";
+const CACHE = "coc-timers-v34";
 const ASSETS = [
   "./",
   "./index.html",
@@ -15,7 +15,6 @@ const ASSETS = [
   "./js/changelog.js",
   "./js/visit.js",
   "./changelog.json",
-  "./images/aldea.jpg",
   "./icons/icon.svg",
   "./icons/icon-192.png",
   "./icons/icon-512.png",
