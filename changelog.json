@@ -1,6 +1,15 @@
 {
-  "latest": 28,
+  "latest": 29,
   "releases": [
+    {
+      "id": 29,
+      "date": "2026-10-14",
+      "title": "Taller y mejoras listas",
+      "notes": [
+        "Las máquinas de asedio del taller ya salen en la lista cuando las estás mejorando.",
+        "Si una mejora ya terminó, la tarjeta te dice hace cuánto y a qué hora quedó lista."
+      ]
+    },
     {
       "id": 28,
       "date": "2026-09-16",

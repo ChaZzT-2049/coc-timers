@@ -267,7 +267,7 @@ export function kindFromFieldAndId(field, dataId) {
   if (field === "traps" || field === "traps2") return "trap";
   if (field === "helpers") return "helper";
   if (field === "units2" || field === "spells2") return "starlab";
-  if (SIEGE_IDS.has(id) || field === "siege") return "workshop";
+  if (SIEGE_IDS.has(id) || field === "siege" || field === "siege_machines") return "workshop";
   if (field === "units" || field === "spells") return "lab";
   if (id >= 73000000 && id < 74000000) return "pet";
   if (id >= 28000000 && id < 29000000) return "hero";

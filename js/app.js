@@ -677,6 +677,7 @@ function filtered(village) {
 function card(upgrade, now) {
   const left = remainingMs(upgrade, now);
   const done = left <= 0;
+  const sinceDone = done ? Math.max(0, now - upgrade.finishAt) : 0;
   const total = Math.max(upgrade.remainingAtExport * 1000, 1);
   const elapsed = Math.min(total, now - (upgrade.finishAt - total));
   const pct = done ? 100 : Math.max(2, Math.min(100, (elapsed / total) * 100));
@@ -702,10 +703,12 @@ function card(upgrade, now) {
       : `Nivel ${upgrade.level} → ${upgrade.targetLevel}`}</p>
     ${helper.detail}
     <div class="progress-block">
-      <p class="eta">${done ? "COMPLETADA" : formatDuration(left)}</p>
+      <p class="eta">${done ? `HACE ${formatDuration(Math.max(sinceDone, 1000))}` : formatDuration(left)}</p>
       <div class="bar" aria-hidden="true"><i style="width:${pct}%"></i></div>
     </div>
-    <p class="finish">${done ? "Lista para recoger" : `Termina ${formatDate(upgrade.finishAt)}`}</p>
+    <p class="finish">${done
+      ? `Terminó ${formatDate(upgrade.finishAt)} · lista para recoger`
+      : `Termina ${formatDate(upgrade.finishAt)}`}</p>
   </article>`;
 }
 
@@ -936,6 +939,7 @@ function demoPayload() {
     ],
     heroes: [{ data: 28000000, lvl: 90, timer: 180 }],
     units: [{ data: 4000008, lvl: 10, timer: 4000, helper_timer: 3500, helper_recurrent: true }],
+    siege_machines: [{ data: 4000051, lvl: 4, timer: 2200 }],
     buildings2: [
       { data: 1000034, lvl: 10 },
       { data: 1000039, lvl: 9 },

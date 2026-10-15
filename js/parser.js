@@ -23,6 +23,8 @@ const FIELD_VILLAGE = {
   heroes: "home",
   units: "home",
   spells: "home",
+  siege_machines: "home",
+  siege: "home",
   pets: "home",
   equipment: "home",
   buildings2: "builder",
