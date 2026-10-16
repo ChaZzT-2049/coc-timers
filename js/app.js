@@ -242,6 +242,15 @@ function formatDate(ms) {
   }).format(new Date(ms));
 }
 
+function startOfDay(date) {
+  const value = date instanceof Date ? date : new Date(date);
+  return new Date(value.getFullYear(), value.getMonth(), value.getDate()).getTime();
+}
+
+function finishesToday(ms, now = Date.now()) {
+  return startOfDay(ms) === startOfDay(now);
+}
+
 function formatWhen(ms) {
   const when = new Date(ms);
   const now = new Date();
@@ -249,7 +258,6 @@ function formatWhen(ms) {
     timeStyle: "short",
     hour12: settings.timeFormat === "12",
   }).format(when);
-  const startOfDay = (date) => new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
   const diffDays = Math.round((startOfDay(when) - startOfDay(now)) / 86400000);
   if (diffDays === 0) return `hoy ${time}`;
   if (diffDays === 1) return `mañana ${time}`;
@@ -416,6 +424,7 @@ function helperReadyAt(helper) {
 }
 
 function displayName(upgrade) {
+  if (upgrade.kind === "crafted" && upgrade.name) return upgrade.name;
   const base = resolveName(upgrade.dataId, upgrade.village);
   const suffix = String(upgrade.name || "").match(/ #\d+$/);
   return suffix ? `${base}${suffix[0]}` : base;
@@ -668,7 +677,7 @@ function markNotified(id) {
 function filtered(village) {
   const list = (snapshot?.upgrades || []).filter((u) => u.village === village);
   if (filter === "all") return list;
-  if (filter === "builder") return list.filter((u) => u.kind === "builder" || u.kind === "trap" || u.kind === "gearup");
+  if (filter === "builder") return list.filter((u) => u.kind === "builder" || u.kind === "trap" || u.kind === "gearup" || u.kind === "crafted");
   if (filter === "lab") return list.filter((u) => u.kind === "lab" || u.kind === "starlab" || u.kind === "workshop");
   if (filter === "hero") return list.filter((u) => u.kind === "hero" || u.kind === "pet");
   return list;
@@ -687,11 +696,14 @@ function card(upgrade, now) {
   const potion = potionChip(upgrade, now);
   const clockClass = clockChip ? " has-clock" : "";
   const potionClass = potion.active ? " has-potion" : "";
+  const today = !done && finishesToday(upgrade.finishAt, now);
+  const todayClass = today ? " is-today" : "";
 
-  return `<article class="card ${done ? "is-done" : ""} ${helper.classes}${clockClass}${potionClass}">
+  return `<article class="card ${done ? "is-done" : ""}${todayClass} ${helper.classes}${clockClass}${potionClass}">
     <div class="card-top">
       <span class="kind-row">
         <span class="kind">${kind}</span>
+        ${today ? `<span class="today-chip">Hoy</span>` : ""}
         ${helper.chip}
         ${clockChip}
         ${potion.chip}
@@ -936,6 +948,19 @@ function demoPayload() {
       { data: 1000015, lvl: 4 },
       { data: 1000015, lvl: 5 },
       { data: 1000015, lvl: 6 },
+      {
+        data: 1000097,
+        types: [
+          {
+            data: 103000008,
+            modules: [
+              { data: 102000024, lvl: 4 },
+              { data: 102000025, lvl: 3, timer: 5400, helper_timer: 1200 },
+              { data: 102000026, lvl: 2 },
+            ],
+          },
+        ],
+      },
     ],
     heroes: [{ data: 28000000, lvl: 90, timer: 180 }],
     units: [{ data: 4000008, lvl: 10, timer: 4000, helper_timer: 3500, helper_recurrent: true }],

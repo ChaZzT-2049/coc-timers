@@ -1,6 +1,15 @@
 {
-  "latest": 29,
+  "latest": 30,
   "releases": [
+    {
+      "id": 30,
+      "date": "2026-10-15",
+      "title": "Hoy y defensas artesanales",
+      "notes": [
+        "Las mejoras que terminan hoy se marcan en la lista para verlas de un vistazo.",
+        "Las defensas artesanales de la aldea (módulos que sube el constructor) ya salen en los timers."
+      ]
+    },
     {
       "id": 29,
       "date": "2026-10-14",

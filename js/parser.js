@@ -2,6 +2,7 @@ import {
   BUILDER_HALL_ID,
   BOB_CONTROL_ID,
   CLOCK_TOWER_ID,
+  CRAFTING_STATION_ID,
   CLOCK_TOWER_SPEED,
   GEAR_UP_BUILDING_IDS,
   HOME_BUILDER_HUT_ID,
@@ -164,6 +165,78 @@ function collectField(payload, field) {
   return upgrades;
 }
 
+function craftedDisplayName(dataId, parentName) {
+  const own = resolveName(dataId, "home");
+  if (parentName && parentName !== own && own !== "Módulo" && own !== "Defensa artesanal") {
+    return `${parentName} · ${own}`;
+  }
+  if (parentName && (own === "Módulo" || own === "Defensa artesanal" || own.startsWith("ID "))) {
+    return parentName === own ? own : `${parentName} · ${own}`;
+  }
+  return own;
+}
+
+function pushCraftedUpgrade(upgrades, item, parentName, slot) {
+  const seconds = remainingSeconds(item);
+  const dataId = Number(item?.data);
+  if (!item || !Number.isFinite(dataId) || dataId === CRAFTING_STATION_ID || seconds <= 0) return slot;
+  const next = slot + 1;
+  const level = levelOf(item);
+  upgrades.push({
+    village: "home",
+    field: "crafted_defenses",
+    kind: "crafted",
+    occupiesVillage: "home",
+    dataId,
+    slot: next,
+    name: craftedDisplayName(dataId, parentName),
+    level,
+    targetLevel: level + 1,
+    workRemainingAtExport: seconds,
+    remainingAtExport: seconds,
+    helperTimer: helperTimerOf(item),
+    helperRecurrent: isRecurrentHelper(item),
+  });
+  return next;
+}
+
+function walkCraftedTree(node, parentName, upgrades, slot) {
+  if (!node || typeof node !== "object") return slot;
+  if (Array.isArray(node)) {
+    for (const child of node) slot = walkCraftedTree(child, parentName, upgrades, slot);
+    return slot;
+  }
+  const dataId = Number(node.data);
+  let nextParent = parentName;
+  if (Number.isFinite(dataId) && dataId >= 103000000 && dataId < 104000000) {
+    nextParent = resolveName(dataId, "home");
+  }
+  slot = pushCraftedUpgrade(upgrades, node, nextParent, slot);
+  if (Array.isArray(node.types)) slot = walkCraftedTree(node.types, nextParent, upgrades, slot);
+  if (Array.isArray(node.modules)) slot = walkCraftedTree(node.modules, nextParent, upgrades, slot);
+  return slot;
+}
+
+function collectCraftedDefenses(payload) {
+  const upgrades = [];
+  let slot = 0;
+  const buildings = Array.isArray(payload.buildings) ? payload.buildings : [];
+  for (const item of buildings) {
+    if (!item || Number(item.data) !== CRAFTING_STATION_ID) continue;
+    slot = walkCraftedTree(item, null, upgrades, slot);
+  }
+  for (const field of ["crafted_defenses", "crafted", "artisan_defenses"]) {
+    slot = walkCraftedTree(payload[field], null, upgrades, slot);
+  }
+  const seen = new Set();
+  return upgrades.filter((upgrade) => {
+    const key = `${upgrade.dataId}:${upgrade.workRemainingAtExport}:${upgrade.level}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 function parseHelpers(payload) {
   const boosts = payload.boosts && typeof payload.boosts === "object" ? payload.boosts : {};
   const globalCooldown = positiveInt(boosts.helper_cooldown);
@@ -251,7 +324,7 @@ function parsePotions(payload, exportedAtMs) {
 function potionExtrasFor(upgrade, potions) {
   if (!potions || upgrade.village !== "home") return [];
   const extras = [];
-  if (upgrade.kind === "builder" || upgrade.kind === "trap" || upgrade.kind === "hero" || upgrade.kind === "gearup") {
+  if (upgrade.kind === "builder" || upgrade.kind === "trap" || upgrade.kind === "hero" || upgrade.kind === "gearup" || upgrade.kind === "crafted") {
     if (potions.builderPotion) {
       extras.push({
         id: "builder-potion",
@@ -439,7 +512,10 @@ export function parseVillageExport(payload, importedAt = Date.now()) {
   const exportedAt = exportTimeMs(payload, importedAt);
   const exportLagMs = Math.max(0, importedAt - exportedAt);
 
-  const upgrades = Object.keys(FIELD_VILLAGE).flatMap((field) => collectField(payload, field));
+  const upgrades = [
+    ...Object.keys(FIELD_VILLAGE).flatMap((field) => collectField(payload, field)),
+    ...collectCraftedDefenses(payload),
+  ];
   const helpers = parseHelpers(payload);
   const potions = parsePotions(payload, exportedAt);
   const clockTower = parseClockTower(payload, exportedAt);
@@ -498,7 +574,7 @@ export function occupiesBuilder(upgrade) {
   if (upgrade.kind === "lab" || upgrade.kind === "starlab" || upgrade.kind === "workshop" || upgrade.kind === "pet") {
     return false;
   }
-  return upgrade.kind === "builder" || upgrade.kind === "trap" || upgrade.kind === "hero" || upgrade.kind === "gearup";
+  return upgrade.kind === "builder" || upgrade.kind === "trap" || upgrade.kind === "hero" || upgrade.kind === "gearup" || upgrade.kind === "crafted";
 }
 
 export function busyBuilders(upgrades, village, now = Date.now()) {

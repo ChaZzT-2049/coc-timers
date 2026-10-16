@@ -43,6 +43,42 @@ export const HOME_NAMES = {
   1000093: "Choza de ayudantes",
   1000097: "Estación de crafteo",
   1000102: "Super torre de magos",
+  103000001: "Defensa artesanal",
+  103000002: "Defensa artesanal",
+  103000007: "Defensa artesanal",
+  103000008: "Asador",
+  103000009: "Bombas aéreas",
+  103000010: "Lanzalava",
+  103000011: "Vela ardiente",
+  103000012: "Cazahéroes",
+  103000013: "Pastelapulta",
+  102000006: "Módulo",
+  102000007: "Módulo",
+  102000008: "Módulo",
+  102000015: "Módulo",
+  102000016: "Módulo",
+  102000017: "Módulo",
+  102000021: "Módulo",
+  102000022: "Módulo",
+  102000023: "Módulo",
+  102000024: "Resistencia",
+  102000025: "Daño",
+  102000026: "Ráfaga",
+  102000027: "Resistencia",
+  102000028: "Daño",
+  102000029: "Recarga",
+  102000030: "Resistencia",
+  102000031: "Daño",
+  102000032: "Alcance",
+  102000033: "Resistencia",
+  102000034: "Daño",
+  102000035: "Duración",
+  102000036: "Resistencia",
+  102000037: "Daño",
+  102000038: "Veneno",
+  102000039: "Resistencia",
+  102000040: "Daño",
+  102000041: "Explosión",
   12000000: "Bomba",
   12000001: "Trampa de muelle",
   12000002: "Bomba gigante",
@@ -193,6 +229,7 @@ export function isUtilityHelper(dataId) {
   return id === HELPER_ALCHEMIST || id === HELPER_PICADOR;
 }
 
+export const CRAFTING_STATION_ID = 1000097;
 export const HOME_BUILDER_HUT_ID = 1000015;
 export const BOB_CONTROL_ID = 1000065;
 export const OTTO_OUTPOST_ID = 1000078;
@@ -223,6 +260,7 @@ export const KIND_LABELS = {
   pet: "Mascota",
   trap: "Trampa",
   workshop: "Taller",
+  crafted: "Artesanal",
   helper: "Ayudante",
 };
 
@@ -230,7 +268,12 @@ export function resolveName(dataId, village) {
   const id = Number(dataId);
   if (village === "builder" && BUILDER_NAMES[id]) return BUILDER_NAMES[id];
   if (village === "home" && HOME_NAMES[id]) return HOME_NAMES[id];
-  return HOME_NAMES[id] || BUILDER_NAMES[id] || UNIT_NAMES[id] || `ID ${id}`;
+  if (HOME_NAMES[id] || BUILDER_NAMES[id] || UNIT_NAMES[id]) {
+    return HOME_NAMES[id] || BUILDER_NAMES[id] || UNIT_NAMES[id];
+  }
+  if (id >= 103000000 && id < 104000000) return "Defensa artesanal";
+  if (id >= 102000000 && id < 103000000) return "Módulo";
+  return `ID ${id}`;
 }
 
 export function isKnownId(dataId) {
@@ -256,7 +299,7 @@ export function nameCatalog() {
 export function helperIdForKind(kind, village = "home") {
   if (village !== "home") return null;
   if (kind === "lab" || kind === "workshop") return HELPER_LAB;
-  if (kind === "builder" || kind === "trap" || kind === "hero") return HELPER_APPRENTICE;
+  if (kind === "builder" || kind === "trap" || kind === "hero" || kind === "crafted") return HELPER_APPRENTICE;
   return null;
 }
 
@@ -268,6 +311,12 @@ export function kindFromFieldAndId(field, dataId) {
   if (field === "helpers") return "helper";
   if (field === "units2" || field === "spells2") return "starlab";
   if (SIEGE_IDS.has(id) || field === "siege" || field === "siege_machines") return "workshop";
+  if (
+    field === "crafted_defenses"
+    || field === "crafted"
+    || field === "artisan_defenses"
+    || (id >= 102000000 && id < 104000000)
+  ) return "crafted";
   if (field === "units" || field === "spells") return "lab";
   if (id >= 73000000 && id < 74000000) return "pet";
   if (id >= 28000000 && id < 29000000) return "hero";
