@@ -1421,6 +1421,12 @@ renderShell();
 if (snapshot) startTicker();
 updateNotifyStatus("Notification" in window ? Notification.permission : "unsupported");
 registerWorker().then(() => {
+  if (isNativeApp()) {
+    return import("./native-alerts.js").then((mod) => {
+      mod.startNativeAlertListeners(markNotified);
+      if (snapshot) syncAlerts();
+    });
+  }
   if (snapshot) syncAlerts();
 });
 pingUniqueVisit();

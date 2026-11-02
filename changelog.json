@@ -1,6 +1,15 @@
 {
-  "latest": 30,
+  "latest": 31,
   "releases": [
+    {
+      "id": 31,
+      "date": "2026-11-01",
+      "title": "Abrir el juego desde el aviso",
+      "notes": [
+        "En mejoras listas, torre del reloj y ayudantes aparece Abrir juego para ir a Clash of Clans.",
+        "Si tocas el aviso (no el botón), se abre COC Timers."
+      ]
+    },
     {
       "id": 30,
       "date": "2026-10-15",

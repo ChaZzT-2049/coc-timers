@@ -39,7 +39,14 @@ export async function requestPermission() {
   return Notification.requestPermission();
 }
 
-export async function showUpgradeNotification({ title, body, tag, vibrate = true, requireInteraction = false }) {
+export async function showUpgradeNotification({
+  title,
+  body,
+  tag,
+  vibrate = true,
+  requireInteraction = false,
+  openGame = false,
+}) {
   const options = {
     body,
     tag: String(tag || "coc").replace(/[^a-zA-Z0-9_-]/g, "-").slice(0, 80),
@@ -48,7 +55,8 @@ export async function showUpgradeNotification({ title, body, tag, vibrate = true
     vibrate: vibrate ? [180, 80, 180] : undefined,
     renotify: true,
     requireInteraction,
-    data: { url: "./" },
+    data: { url: "./", openGame: Boolean(openGame) },
+    actions: openGame ? [{ action: "open-game", title: "Abrir juego" }] : undefined,
   };
 
   try {
@@ -103,6 +111,7 @@ export function collectAlertJobs(upgrades, settings, helpers = [], clockTower = 
         tag: `done-${upgrade.id}`,
         markId: `done:${upgrade.id}`,
         sticky: true,
+        openGame: true,
       });
 
       if (aheadMs > 0 && upgrade.finishAt - aheadMs > now) {
@@ -142,6 +151,7 @@ export function collectAlertJobs(upgrades, settings, helpers = [], clockTower = 
         body: `${label} · ya puedes asignarlo${list.length > 1 ? "s" : ""}`,
         tag: id,
         markId: id,
+        openGame: true,
       });
     }
 
@@ -154,6 +164,7 @@ export function collectAlertJobs(upgrades, settings, helpers = [], clockTower = 
         body: "Ya puedes acelerar la base de constructores ×10",
         tag: clockId,
         markId: clockId,
+        openGame: true,
       });
     }
   }
@@ -180,6 +191,7 @@ export function scheduleUpgradeAlerts(upgrades, settings, notified, markNotified
         body: job.body,
         tag: job.tag,
         requireInteraction: Boolean(job.sticky || job.markId),
+        openGame: Boolean(job.openGame),
       });
       if (shown && job.markId) markNotified(job.markId);
     };

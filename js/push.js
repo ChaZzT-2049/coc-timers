@@ -63,6 +63,9 @@ async function ensureMessaging() {
       const title = payload.data?.title || payload.notification?.title || "COC Timers";
       const body = payload.data?.body || payload.notification?.body || "";
       const tag = payload.data?.tag || "coc-timers";
+      const openGame = String(tag).startsWith("done-")
+        || String(tag).startsWith("helper-ready")
+        || String(tag).startsWith("clock-ready");
       if (Notification.permission !== "granted") return;
       void navigator.serviceWorker.ready.then((reg) =>
         reg.showNotification(title, {
@@ -70,7 +73,8 @@ async function ensureMessaging() {
           tag,
           icon: "./icons/icon-192.png",
           badge: "./icons/icon-192.png",
-          data: { url: "./" },
+          data: { url: "./", openGame },
+          actions: openGame ? [{ action: "open-game", title: "Abrir juego" }] : undefined,
           renotify: true,
         })
       );

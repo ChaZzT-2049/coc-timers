@@ -1,6 +1,11 @@
+import { registerPlugin } from "@capacitor/core";
 import { LocalNotifications } from "@capacitor/local-notifications";
 
 const CHANNEL_ID = "upgrades";
+const ACTION_TYPE = "READY_ALERTS";
+const ACTION_OPEN_GAME = "open-game";
+const OpenGame = registerPlugin("OpenGame");
+
 let ready = false;
 let listening = false;
 let onMark = null;
@@ -12,6 +17,22 @@ function toNotifId(key) {
     hash = Math.imul(hash, 16777619);
   }
   return (hash >>> 0) % 2147483647 || 1;
+}
+
+async function openClashOfClans() {
+  try {
+    await OpenGame.openClash();
+  } catch {
+    /* el juego o Play no respondieron */
+  }
+}
+
+async function handleAction(event) {
+  const markId = event?.notification?.extra?.markId;
+  if (markId && onMark) onMark(markId);
+  if (event?.actionId === ACTION_OPEN_GAME) {
+    await openClashOfClans();
+  }
 }
 
 async function ensureReady() {
@@ -28,6 +49,24 @@ async function ensureReady() {
   } catch {
     /* canal ya existe o no aplica */
   }
+  try {
+    await LocalNotifications.registerActionTypes({
+      types: [
+        {
+          id: ACTION_TYPE,
+          actions: [
+            {
+              id: ACTION_OPEN_GAME,
+              title: "Abrir juego",
+              foreground: true,
+            },
+          ],
+        },
+      ],
+    });
+  } catch {
+    /* acciones no disponibles */
+  }
   if (!listening) {
     listening = true;
     await LocalNotifications.addListener("localNotificationReceived", (notification) => {
@@ -35,11 +74,15 @@ async function ensureReady() {
       if (markId && onMark) onMark(markId);
     });
     await LocalNotifications.addListener("localNotificationActionPerformed", (event) => {
-      const markId = event?.notification?.extra?.markId;
-      if (markId && onMark) onMark(markId);
+      void handleAction(event);
     });
   }
   ready = true;
+}
+
+export async function startNativeAlertListeners(markNotified) {
+  onMark = markNotified || onMark;
+  await ensureReady();
 }
 
 async function cancelPending() {
@@ -77,7 +120,7 @@ export async function syncNativeAlerts(jobs, markNotified) {
     .map((job) => {
       const fireAt = Number(job.fireAt) || 0;
       const at = new Date(Math.max(fireAt, now + 1200));
-      return {
+      const item = {
         id: toNotifId(job.id),
         title: String(job.title || "COC Timers").slice(0, 80),
         body: String(job.body || "").slice(0, 180),
@@ -88,6 +131,8 @@ export async function syncNativeAlerts(jobs, markNotified) {
           allowWhileIdle: true,
         },
       };
+      if (job.openGame) item.actionTypeId = ACTION_TYPE;
+      return item;
     });
   if (!notifications.length) return;
   await LocalNotifications.schedule({ notifications });
@@ -102,8 +147,10 @@ export async function sendNativeTestAlert() {
       {
         id: 900001,
         title: "COC Timers",
-        body: "Aviso de prueba. Si ves esto con la app cerrada, los avisos del teléfono llegan bien.",
+        body: "Aviso de prueba. Toca el aviso para abrir esta app, o Abrir juego para Clash of Clans.",
         channelId: CHANNEL_ID,
+        actionTypeId: ACTION_TYPE,
+        extra: { markId: "", jobId: "test" },
         schedule: {
           at: new Date(Date.now() + 8000),
           allowWhileIdle: true,

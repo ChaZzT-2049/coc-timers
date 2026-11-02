@@ -1,4 +1,4 @@
-const CACHE = "coc-timers-v40";
+const CACHE = "coc-timers-v41";
 const ASSETS = [
   "./",
   "./index.html",
@@ -34,18 +34,26 @@ firebase.initializeApp({
 });
 firebase.messaging();
 
+function canOpenGameFromTag(tag) {
+  const value = String(tag || "");
+  return value.startsWith("done-") || value.startsWith("helper-ready") || value.startsWith("clock-ready");
+}
+
 function pushOptions(data) {
   const d = data || {};
   const n = d.notification || {};
   const extra = d.data || {};
+  const tag = extra.tag || n.tag || "coc-timers";
+  const openGame = extra.openGame === "true" || extra.openGame === true || canOpenGameFromTag(tag);
   return {
     title: n.title || extra.title || "COC Timers",
     options: {
       body: n.body || extra.body || "",
-      tag: extra.tag || n.tag || "coc-timers",
+      tag,
       icon: "./icons/icon-192.png",
       badge: "./icons/icon-192.png",
-      data: { url: extra.url || "./" },
+      data: { url: extra.url || "./", openGame },
+      actions: openGame ? [{ action: "open-game", title: "Abrir juego" }] : undefined,
       renotify: true,
     },
   };
@@ -97,6 +105,10 @@ self.addEventListener("fetch", (event) => {
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
+  if (event.action === "open-game") {
+    event.waitUntil(self.clients.openWindow("https://link.clashofclans.com/"));
+    return;
+  }
   event.waitUntil(
     self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
       for (const client of clients) {
