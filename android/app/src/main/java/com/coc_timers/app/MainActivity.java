@@ -1,4 +1,4 @@
-package io.github.chazzt2049.coctimers;
+package com.coc_timers.app;
 
 import com.getcapacitor.BridgeActivity;
 
