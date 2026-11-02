@@ -1,6 +1,14 @@
 {
-  "latest": 31,
+  "latest": 32,
   "releases": [
+    {
+      "id": 32,
+      "date": "2026-11-01",
+      "title": "Portapapeles en Android",
+      "notes": [
+        "En la app del teléfono, Pegar y el aviso de JSON copiado usan el portapapeles nativo, no el del navegador."
+      ]
+    },
     {
       "id": 31,
       "date": "2026-11-01",

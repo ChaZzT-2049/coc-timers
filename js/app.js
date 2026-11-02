@@ -1160,11 +1160,23 @@ function offerClipboardSoon() {
       return;
     }
     void offerClipboardIfValid();
-  }, 280);
+  }, isNativeApp() ? 500 : 280);
+}
+
+async function readClipboardText() {
+  if (isNativeApp()) {
+    const { readNativeClipboard } = await import("./native-clipboard.js");
+    return readNativeClipboard();
+  }
+  if (!navigator.clipboard?.readText) {
+    throw new Error("unsupported");
+  }
+  return navigator.clipboard.readText();
 }
 
 async function offerClipboardIfValid() {
-  if (clipboardBusy || overlayOpen() || !navigator.clipboard?.readText) return;
+  if (clipboardBusy || overlayOpen()) return;
+  if (!isNativeApp() && !navigator.clipboard?.readText) return;
   if (document.visibilityState !== "visible") return;
   if (currentPage() !== "home") {
     clipboardNeedsRetry = true;
@@ -1172,7 +1184,7 @@ async function offerClipboardIfValid() {
   }
   clipboardBusy = true;
   try {
-    const text = await navigator.clipboard.readText();
+    const text = await readClipboardText();
     if (!looksLikeVillageJson(text)) return;
     const parsed = parseVillageText(text);
     const key = clipboardKey(parsed);
@@ -1229,7 +1241,11 @@ function bind() {
 
   $("paste-btn").addEventListener("click", async () => {
     try {
-      const text = await navigator.clipboard.readText();
+      const text = await readClipboardText();
+      if (!String(text || "").trim()) {
+        showError("El portapapeles está vacío. Copia el JSON en el juego y vuelve a pulsar Pegar.");
+        return;
+      }
       els.json.value = text;
       await importFromText(text);
     } catch {

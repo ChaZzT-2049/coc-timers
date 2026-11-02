@@ -1,4 +1,4 @@
-const CACHE = "coc-timers-v41";
+const CACHE = "coc-timers-v42";
 const ASSETS = [
   "./",
   "./index.html",

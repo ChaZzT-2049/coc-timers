@@ -29,11 +29,11 @@ for (const dir of dirs) {
 
 await esbuild.build({
   absWorkingDir: root,
-  entryPoints: ["js/native-alerts.js"],
+  entryPoints: ["js/native-alerts.js", "js/native-clipboard.js"],
   bundle: true,
   format: "esm",
   platform: "browser",
-  outfile: join(www, "js/native-alerts.js"),
+  outdir: join(www, "js"),
   logLevel: "silent",
 });
 
