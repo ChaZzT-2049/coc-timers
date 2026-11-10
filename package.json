@@ -1,0 +1,23 @@
+{
+  "name": "revision-clan",
+  "private": true,
+  "description": "Ranking de revisión de un clan de Clash of Clans. App aparte de COC Timers.",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "next dev -p 4173",
+    "build": "next build",
+    "start": "next start -p 4173",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "next": "^15.5.4",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1"
+  },
+  "overrides": {
+    "postcss": "8.5.32"
+  }
+}
