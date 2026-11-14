@@ -1,6 +1,32 @@
 {
-  "latest": 32,
+  "latest": 35,
   "releases": [
+    {
+      "id": 35,
+      "date": "2026-11-13",
+      "title": "Simular pociones",
+      "notes": [
+        "En Resumen puedes probar cuántas pociones o snacks usarías y ver cuánto recortarían las mejoras en curso."
+      ]
+    },
+    {
+      "id": 34,
+      "date": "2026-11-13",
+      "title": "Poción de mascotas",
+      "notes": [
+        "Si usas la poción de mascotas, el timer de la caseta ya corre a ×24 y se ve el boost en la ficha.",
+        "El Yak poderoso y el Búho eléctrico ya salen con el nombre que les toca."
+      ]
+    },
+    {
+      "id": 33,
+      "date": "2026-11-13",
+      "title": "Nombres: catapulta y aeropuerco",
+      "notes": [
+        "La defensa de TH13 ya sale como Catapulta, no como Cañón múltiple.",
+        "El Aeropuerco del laboratorio estelar ya tiene nombre (deja de verse el ID 4000070)."
+      ]
+    },
     {
       "id": 32,
       "date": "2026-11-01",

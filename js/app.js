@@ -7,7 +7,7 @@ import {
   nameCatalog,
   resolveName,
 } from "./ids.js";
-import { busyBuilders, crewVillage, isComplete, occupiesBuilder, parseVillageText, remainingMs } from "./parser.js";
+import { busyBuilders, crewVillage, isComplete, occupiesBuilder, parseVillageText, POTION_PLANS, remainingMs, simulatePotionPlan } from "./parser.js";
 import {
   clearVillage,
   loadNotified,
@@ -68,9 +68,13 @@ const els = {
   sleepWake: $("sleep-wake"),
   sleepHours: $("sleep-hours"),
   sleepReport: $("sleep-report"),
+  potionSimControls: $("potion-sim-controls"),
+  potionSimReport: $("potion-sim-report"),
   viewSummary: $("view-summary"),
   viewUpgrades: $("view-upgrades"),
 };
+
+const potionSimCounts = Object.fromEntries(POTION_PLANS.map((plan) => [plan.id, 0]));
 
 let snapshot = loadVillage();
 let settings = loadSettings();
@@ -412,6 +416,71 @@ function renderSleepReport(now = Date.now()) {
     <p class="sleep-window">De ${formatWhen(overnight.start)} a ${formatWhen(overnight.end)}</p>
     <p class="sleep-headline">${headline}</p>
     ${rows.length ? `<div class="sleep-hits">${rows.join("")}</div>` : ""}
+  `;
+}
+
+function bindPotionSimControls() {
+  const box = els.potionSimControls;
+  if (!box || box.dataset.ready) return;
+  box.dataset.ready = "1";
+  box.innerHTML = POTION_PLANS.map((plan) => `
+    <div class="potion-sim-row">
+      <div>
+        <strong>${plan.name}</strong>
+        <span class="muted">×${plan.rate} · 1 h cada una</span>
+      </div>
+      <div class="potion-sim-step">
+        <button class="btn secondary" type="button" data-potion-delta="${plan.id}" data-delta="-1" aria-label="Menos ${plan.name}">−</button>
+        <b data-potion-count="${plan.id}">0</b>
+        <button class="btn" type="button" data-potion-delta="${plan.id}" data-delta="1" aria-label="Más ${plan.name}">+</button>
+      </div>
+    </div>
+  `).join("");
+  box.addEventListener("click", (event) => {
+    const btn = event.target.closest("[data-potion-delta]");
+    if (!btn) return;
+    const id = btn.dataset.potionDelta;
+    const delta = Number(btn.dataset.delta) || 0;
+    if (!id || !delta) return;
+    potionSimCounts[id] = Math.max(0, Math.min(9, (potionSimCounts[id] || 0) + delta));
+    const label = box.querySelector(`[data-potion-count="${id}"]`);
+    if (label) label.textContent = String(potionSimCounts[id]);
+    renderPotionSim();
+  });
+}
+
+function renderPotionSim(now = Date.now()) {
+  bindPotionSimControls();
+  const box = els.potionSimReport;
+  if (!box) return;
+  const using = POTION_PLANS.some((plan) => (potionSimCounts[plan.id] || 0) > 0);
+  if (!using) {
+    box.innerHTML = `<p class="empty-list">Pon cuántas usarías ahora. Verás el tiempo que queda en cada mejora que acelera ese boost.</p>`;
+    return;
+  }
+  const result = simulatePotionPlan(snapshot?.upgrades || [], potionSimCounts, snapshot?.exportedAt, now);
+  if (!result.rows.length) {
+    box.innerHTML = `<p class="empty-list">Ninguna mejora en curso usaría esas pociones.</p>`;
+    return;
+  }
+  const span = (seconds) => (seconds <= 0 ? "lista" : formatDuration(seconds * 1000));
+  const useful = result.rows.filter((row) => row.saved > 0 || row.simulatedLeft === 0);
+  if (!useful.length) {
+    box.innerHTML = `<p class="empty-list">Con esas cantidades no recortarías las mejoras en curso (quizá el boost ya está activo).</p>`;
+    return;
+  }
+  const saved = useful.reduce((sum, row) => sum + row.saved, 0);
+  const currentLeft = useful.reduce((sum, row) => sum + row.currentLeft, 0);
+  const simulatedLeft = useful.reduce((sum, row) => sum + row.simulatedLeft, 0);
+  const rows = useful.map((row) => `
+    <article class="potion-sim-hit">
+      <b>${displayName(row.upgrade)}</b>
+      <span>Ahora ${span(row.currentLeft)} → ${span(row.simulatedLeft)} · ahorras ${span(row.saved)}</span>
+    </article>
+  `).join("");
+  box.innerHTML = `
+    <p class="potion-sim-total">Suma de esos timers: ${span(currentLeft)} → ${span(simulatedLeft)}. Ahorras ${span(saved)} (cada mejora tiene su propio reloj).</p>
+    <div class="potion-sim-hits">${rows}</div>
   `;
 }
 
@@ -804,6 +873,7 @@ function renderLists(now = Date.now()) {
   renderClockTower(now);
   renderHomeBoosts(now);
   renderSleepReport(now);
+  renderPotionSim(now);
 }
 
 function renderShell() {

@@ -271,6 +271,7 @@ function parsePotions(payload, exportedAtMs) {
   const builderBite = positiveInt(boosts.builder_consumable);
   const labPotion = positiveInt(boosts.lab_boost);
   const labSoup = positiveInt(boosts.lab_consumable);
+  const petPotion = positiveInt(boosts.pet_boost);
   const items = [];
   if (builderPotion) {
     items.push({
@@ -312,11 +313,22 @@ function parsePotions(payload, exportedAtMs) {
       until: exportedAtMs + labSoup * 1000,
     });
   }
+  if (petPotion) {
+    items.push({
+      id: "pet-potion",
+      name: "Poción de mascotas",
+      extra: 23,
+      rate: 24,
+      left: petPotion,
+      until: exportedAtMs + petPotion * 1000,
+    });
+  }
   return {
     builderPotion,
     builderBite,
     labPotion,
     labSoup,
+    petPotion,
     items,
   };
 }
@@ -363,6 +375,15 @@ function potionExtrasFor(upgrade, potions) {
         rate: 4,
       });
     }
+  }
+  if (upgrade.kind === "pet" && potions.petPotion) {
+    extras.push({
+      id: "pet-potion",
+      extra: 23,
+      left: potions.petPotion,
+      label: "Poción mascota",
+      rate: 24,
+    });
   }
   return extras;
 }
@@ -621,6 +642,81 @@ function parseBuilders(payload) {
     home: { total: homeTotal },
     builder: { total: builderTotal },
   };
+}
+
+export const POTION_PLANS = [
+  { id: "builder-potion", name: "Poción de constructor", extra: 9, rate: 10, duration: 3600 },
+  { id: "builder-bite", name: "Bocadillo", extra: 1, rate: 2, duration: 3600 },
+  { id: "lab-potion", name: "Poción de laboratorio", extra: 23, rate: 24, duration: 3600 },
+  { id: "lab-soup", name: "Sopa de estudio", extra: 3, rate: 4, duration: 3600 },
+  { id: "pet-potion", name: "Poción de mascotas", extra: 23, rate: 24, duration: 3600 },
+];
+
+function potionPlanMatches(plan, upgrade) {
+  if (!upgrade || upgrade.village !== "home") return false;
+  if (plan.id === "builder-potion" || plan.id === "builder-bite") {
+    return upgrade.kind === "builder" || upgrade.kind === "trap" || upgrade.kind === "hero"
+      || upgrade.kind === "gearup" || upgrade.kind === "crafted";
+  }
+  if (plan.id === "lab-potion" || plan.id === "lab-soup") {
+    return upgrade.kind === "lab" || upgrade.kind === "workshop";
+  }
+  if (plan.id === "pet-potion") return upgrade.kind === "pet";
+  return false;
+}
+
+/** Recorta timers si bebes más pociones ahora. Las que ya corren siguen en la cuenta actual. */
+export function simulatePotionPlan(upgrades, counts, exportedAt, now = Date.now()) {
+  const elapsed = Math.max(0, Math.floor((now - Number(exportedAt || now)) / 1000));
+  const addById = {};
+  for (const plan of POTION_PLANS) {
+    const n = Math.max(0, Math.min(9, Math.floor(Number(counts?.[plan.id]) || 0)));
+    if (n > 0) addById[plan.id] = { extra: plan.extra, addLeft: n * plan.duration };
+  }
+
+  const rows = [];
+  for (const upgrade of upgrades || []) {
+    const currentLeft = Math.ceil(remainingMs(upgrade, now) / 1000);
+    if (currentLeft <= 0) continue;
+    const addons = POTION_PLANS.filter((plan) => addById[plan.id] && potionPlanMatches(plan, upgrade));
+    if (!addons.length) continue;
+
+    const extras = (upgrade.potions || []).map((item) => ({
+      id: item.id,
+      extra: item.extra,
+      left: item.left,
+    }));
+    for (const plan of addons) {
+      const add = addById[plan.id];
+      const found = extras.find((item) => item.id === plan.id);
+      if (found) found.left += add.addLeft;
+      else extras.push({ id: plan.id, extra: add.extra, left: add.addLeft });
+    }
+
+    const helper = upgrade.helper;
+    const wall = wallClockWithHelper(
+      upgrade.workRemainingAtExport,
+      helper?.speed || 1,
+      helper?.sessionLeft || 0,
+      helper?.cooldownLeft || 0,
+      Boolean(helper?.recurrent),
+      extras
+    );
+    const simulatedLeft = Math.max(0, wall - elapsed);
+    const saved = Math.max(0, currentLeft - simulatedLeft);
+    rows.push({
+      upgrade,
+      currentLeft,
+      simulatedLeft,
+      saved,
+    });
+  }
+
+  rows.sort((a, b) => b.saved - a.saved || a.simulatedLeft - b.simulatedLeft);
+  const saved = rows.reduce((sum, row) => sum + row.saved, 0);
+  const currentLeft = rows.reduce((sum, row) => sum + row.currentLeft, 0);
+  const simulatedLeft = rows.reduce((sum, row) => sum + row.simulatedLeft, 0);
+  return { rows, saved, currentLeft, simulatedLeft };
 }
 
 export function remainingMs(upgrade, now = Date.now()) {
