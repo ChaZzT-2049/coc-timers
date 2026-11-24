@@ -2,7 +2,7 @@
   "appId": "com.coc_timers.app",
   "appName": "COC Timers",
   "webDir": "www",
-  "backgroundColor": "#2a1c10",
+  "backgroundColor": "#ffffff",
   "android": {
     "webContentsDebuggingEnabled": false
   },
