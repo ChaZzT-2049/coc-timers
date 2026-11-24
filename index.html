@@ -102,12 +102,9 @@
             <div class="helpers-utility" id="helpers-utility" hidden></div>
           </section>
 
-          <section class="potion-sim" id="potion-sim">
-            <h2>Simular pociones</h2>
-            <p class="status">Cuánto recortarían las mejoras en curso si usas pociones o snacks ahora. Lo que ya está activo ya está en los timers.</p>
-            <div class="potion-sim-controls" id="potion-sim-controls"></div>
-            <div id="potion-sim-report"></div>
-          </section>
+          <div class="hero-actions potion-sim-launch">
+            <button class="btn secondary" id="open-potion" type="button">Simular pociones</button>
+          </div>
 
           <section class="sleep-report" id="sleep-section">
             <h2>Mientras duermes</h2>
@@ -305,6 +302,22 @@
         </div>
         <div class="hero-actions">
           <button class="btn" id="ack-sleep" type="button">Listo</button>
+        </div>
+      </aside>
+    </div>
+
+    <div class="drawer" id="potion-modal" aria-hidden="true">
+      <div class="backdrop" id="potion-backdrop"></div>
+      <aside class="modal-card potion-sim" role="dialog" aria-modal="true" aria-labelledby="potion-title">
+        <header>
+          <h2 id="potion-title">Simular pociones</h2>
+          <button class="btn close" id="close-potion" type="button" aria-label="Cerrar">×</button>
+        </header>
+        <p class="status">Cuánto recortarían las mejoras en curso si usas pociones o snacks ahora. Lo que ya está activo ya está en los timers.</p>
+        <div class="potion-sim-controls" id="potion-sim-controls"></div>
+        <div id="potion-sim-report"></div>
+        <div class="hero-actions">
+          <button class="btn" id="ack-potion" type="button">Listo</button>
         </div>
       </aside>
     </div>

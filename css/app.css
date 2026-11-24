@@ -427,20 +427,7 @@ a.btn { text-decoration: none; color: #fff; }
 }
 .view-panel[hidden] { display: none; }
 
-.potion-sim { margin: 8px 0 18px; }
-.potion-sim h2 {
-  margin: 0 0 8px;
-  font-family: var(--display);
-  font-size: 1.2rem;
-  font-weight: 400;
-  letter-spacing: 0.02em;
-  color: #fff;
-  text-shadow: var(--hud-outline);
-}
-.potion-sim > .status {
-  color: #fff8dc;
-  text-shadow: 0 1px 0 #1a3a0c;
-}
+.potion-sim-launch { margin: 8px 0 18px; }
 .potion-sim-controls { display: grid; gap: 8px; margin: 12px 0; }
 .potion-sim-row {
   display: flex;
@@ -1009,6 +996,11 @@ select {
   margin: 4px 0;
   font-weight: 700;
   color: var(--ink);
+}
+.modal-card .empty-list {
+  color: var(--ink);
+  text-shadow: none;
+  border-color: rgba(42, 28, 16, 0.28);
 }
 .modal-card .note { margin-top: 12px; }
 .modal-card .status,

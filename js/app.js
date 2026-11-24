@@ -60,6 +60,7 @@ const els = {
   namesCatalog: $("names-catalog"),
   drawer: $("import-drawer"),
   sleepModal: $("sleep-modal"),
+  potionModal: $("potion-modal"),
   clipboardModal: $("clipboard-modal"),
   clipboardSummary: $("clipboard-summary"),
   clipboardReplace: $("clipboard-replace"),
@@ -1104,6 +1105,17 @@ function openSleep() {
   openOverlay(els.sleepModal);
 }
 
+function openPotionSim() {
+  bindPotionSimControls();
+  renderPotionSim();
+  openOverlay(els.potionModal);
+}
+
+function closePotionSim() {
+  closeOverlay(els.potionModal);
+  offerClipboardSoon();
+}
+
 function closeSleep({ skipClipboard = false } = {}) {
   closeOverlay(els.sleepModal);
   renderSleepHours();
@@ -1186,6 +1198,7 @@ function overlayOpen() {
   return (
     els.drawer.classList.contains("is-open") ||
     els.sleepModal.classList.contains("is-open") ||
+    els.potionModal?.classList.contains("is-open") ||
     els.clipboardModal.classList.contains("is-open")
   );
 }
@@ -1283,6 +1296,10 @@ function bind() {
   $("back-settings")?.addEventListener("click", goHome);
   $("back-changelog")?.addEventListener("click", goHome);
   $("open-sleep")?.addEventListener("click", openSleep);
+  $("open-potion")?.addEventListener("click", openPotionSim);
+  $("close-potion")?.addEventListener("click", closePotionSim);
+  $("ack-potion")?.addEventListener("click", closePotionSim);
+  $("potion-backdrop")?.addEventListener("click", closePotionSim);
   $("close-sleep")?.addEventListener("click", closeSleep);
   $("ack-sleep")?.addEventListener("click", closeSleep);
   $("sleep-backdrop")?.addEventListener("click", closeSleep);
@@ -1296,6 +1313,10 @@ function bind() {
     if (event.key !== "Escape") return;
     if (els.clipboardModal.classList.contains("is-open")) {
       dismissClipboardPrompt();
+      return;
+    }
+    if (els.potionModal?.classList.contains("is-open")) {
+      closePotionSim();
       return;
     }
     if (els.sleepModal.classList.contains("is-open")) {
