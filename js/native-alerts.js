@@ -103,8 +103,31 @@ async function cancelPending() {
   }
 }
 
-export async function requestNativePermission() {
+function permissionWord(value) {
+  if (value === "granted") return "granted";
+  if (value === "denied") return "denied";
+  return "default";
+}
+
+export async function readNativePermission() {
   const current = await LocalNotifications.checkPermissions();
+  let exact = "granted";
+  try {
+    const alarm = await LocalNotifications.checkExactNotificationSetting();
+    exact = alarm?.exact_alarm === "denied" ? "denied" : "granted";
+  } catch {
+    exact = "granted";
+  }
+  return { display: permissionWord(current?.display), exact };
+}
+
+export async function requestExactAlarms() {
+  const alarm = await LocalNotifications.changeExactNotificationSetting();
+  return alarm?.exact_alarm === "denied" ? "denied" : "granted";
+}
+
+export async function requestNativePermission() {
+  const current = await readNativePermission();
   if (current.display === "granted") return "granted";
   const next = await LocalNotifications.requestPermissions();
   return next.display === "granted" ? "granted" : "denied";

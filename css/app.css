@@ -175,6 +175,10 @@ button, .file-btn {
 .btn[hidden] {
   display: none !important;
 }
+#enable-notify:disabled {
+  filter: saturate(0.7);
+  cursor: default;
+}
 @media (display-mode: standalone),
        (display-mode: fullscreen),
        (display-mode: minimal-ui),

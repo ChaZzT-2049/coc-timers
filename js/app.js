@@ -915,6 +915,7 @@ function syncAlerts() {
     clearScheduled();
     if (isNativeApp()) {
       void import("./native-alerts.js").then((mod) => mod.syncNativeAlerts([], markNotified));
+      void refreshNotifyStatus();
       return;
     }
     void syncPushAlerts([]).then(afterPush);
@@ -936,11 +937,7 @@ function syncAlerts() {
   if (isNativeApp()) {
     void import("./native-alerts.js")
       .then((mod) => mod.syncNativeAlerts(jobs, markNotified))
-      .then(async () => {
-        const { requestNativePermission } = await import("./native-alerts.js");
-        updateNotifyStatus(await requestNativePermission());
-      })
-      .catch(() => updateNotifyStatus("denied"));
+      .finally(() => refreshNotifyStatus());
     return;
   }
   void syncPushAlerts(jobs).then(afterPush);
@@ -987,7 +984,7 @@ async function importFromText(text) {
     closeDrawer();
     goHome();
     const permission = await requestPermission();
-    updateNotifyStatus(permission);
+    await applyPermissionResult(permission);
   } catch (error) {
     showError(error.message || "No se pudo importar el JSON.");
   }
@@ -1048,12 +1045,13 @@ function demoPayload() {
   };
 }
 
-function updateNotifyStatus(permission) {
-  const labels = isNativeApp()
+function updateNotifyStatus(permission, exact = "granted") {
+  const native = isNativeApp();
+  const labels = native
     ? {
         granted: "Avisos del teléfono activos. Llegan aunque cierres la app.",
-        denied: "Notificaciones bloqueadas en el teléfono",
-        default: "Activa los avisos del teléfono",
+        denied: "Notificaciones bloqueadas en el teléfono. Actívalas en Ajustes del sistema.",
+        default: "Los avisos del teléfono todavía no están activados.",
         unsupported: "Este teléfono no admite avisos",
       }
     : {
@@ -1062,11 +1060,50 @@ function updateNotifyStatus(permission) {
         default: "Activa las notificaciones para avisarte",
         unsupported: "Este navegador no admite notificaciones",
       };
-  const push = isNativeApp() ? null : loadPushStatus();
+  let text = labels[permission] || labels.default;
+  if (native && permission === "granted" && exact === "denied") {
+    text = "Avisos activos, pero las alarmas exactas están apagadas. Pueden llegar tarde.";
+  }
+  const push = native ? null : loadPushStatus();
   const cloud = push?.text ? ` ${push.text}.` : "";
-  els.notifyStatus.textContent = `${labels[permission] || labels.default}${permission === "granted" ? cloud : ""}`;
+  els.notifyStatus.textContent = `${text}${permission === "granted" && exact !== "denied" ? cloud : ""}`;
   const webNote = $("web-push-note");
-  if (webNote) webNote.hidden = isNativeApp();
+  if (webNote) webNote.hidden = native;
+  const btn = $("enable-notify");
+  const label = btn?.querySelector(".btn-label");
+  if (!btn || !label) return;
+  if (permission === "granted" && exact !== "denied") {
+    label.textContent = "Avisos activos";
+    btn.disabled = true;
+  } else if (native && permission === "granted") {
+    label.textContent = "Permitir alarmas exactas";
+    btn.disabled = false;
+  } else {
+    label.textContent = "Activar avisos";
+    btn.disabled = false;
+  }
+}
+
+async function refreshNotifyStatus() {
+  if (!isNativeApp()) {
+    updateNotifyStatus("Notification" in window ? Notification.permission : "unsupported");
+    return;
+  }
+  try {
+    const { readNativePermission } = await import("./native-alerts.js");
+    const state = await readNativePermission();
+    updateNotifyStatus(state.display, state.exact);
+  } catch {
+    updateNotifyStatus("default");
+  }
+}
+
+async function applyPermissionResult(permission) {
+  if (isNativeApp()) {
+    await refreshNotifyStatus();
+    return;
+  }
+  updateNotifyStatus(permission);
 }
 
 function openOverlay(el) {
@@ -1164,7 +1201,7 @@ async function applyPage() {
   if (page === "settings") {
     applySettingsToForm();
     renderNamesCatalog();
-    updateNotifyStatus("Notification" in window ? Notification.permission : "unsupported");
+    void refreshNotifyStatus();
   }
   if (page === "changelog") await showChangelogPage();
   if (page === "home") offerClipboardSoon();
@@ -1229,7 +1266,7 @@ async function importPendingClipboard() {
   closeOverlay(els.clipboardModal);
   importSnapshot(next);
   const permission = await requestPermission();
-  updateNotifyStatus(permission);
+  await applyPermissionResult(permission);
 }
 
 function offerClipboardSoon() {
@@ -1359,7 +1396,7 @@ function bind() {
       (await import("./parser.js")).parseVillageExport(demoPayload())
     );
     const permission = await requestPermission();
-    updateNotifyStatus(permission);
+    await applyPermissionResult(permission);
     closeDrawer();
   });
 
@@ -1376,8 +1413,17 @@ function bind() {
   });
 
   $("enable-notify").addEventListener("click", async () => {
+    if (isNativeApp()) {
+      const { readNativePermission, requestExactAlarms } = await import("./native-alerts.js");
+      const current = await readNativePermission();
+      if (current.display === "granted" && current.exact === "denied") {
+        await requestExactAlarms();
+        await refreshNotifyStatus();
+        return;
+      }
+    }
     const permission = await requestPermission();
-    updateNotifyStatus(permission);
+    await applyPermissionResult(permission);
     if (permission === "granted") {
       if (!isNativeApp()) void getPushToken();
       syncAlerts();
@@ -1387,7 +1433,7 @@ function bind() {
 
   $("test-push")?.addEventListener("click", async () => {
     const permission = await requestPermission();
-    updateNotifyStatus(permission);
+    await applyPermissionResult(permission);
     if (permission !== "granted") {
       toast("Activa avisos primero");
       return;
@@ -1401,9 +1447,9 @@ function bind() {
         await sendTestPush();
         toast("Aviso de prueba enviado. Cierra la app y espera unos segundos.");
       }
-      updateNotifyStatus(permission);
+      await applyPermissionResult(permission);
     } catch (error) {
-      updateNotifyStatus(permission);
+      await applyPermissionResult(permission);
       toast(error.message || "No se pudo enviar la prueba");
     }
   });
@@ -1526,7 +1572,7 @@ window.addEventListener("load", () => void syncInstallUi());
 void initChangelog();
 renderShell();
 if (snapshot) startTicker();
-updateNotifyStatus("Notification" in window ? Notification.permission : "unsupported");
+void refreshNotifyStatus();
 registerWorker().then(() => {
   if (isNativeApp()) {
     return import("./native-alerts.js").then((mod) => {
